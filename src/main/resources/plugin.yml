@@ -1,0 +1,9 @@
+name: BattleRoyale
+version: '1.0-SNAPSHOT'
+main: org.Foxraft.battleRoyale.BattleRoyale
+api-version: '1.21'
+commands:
+  br:
+    permission: br.use
+    description: Battle Royale command
+    usage: /<command>
