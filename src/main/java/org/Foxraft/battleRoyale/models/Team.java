@@ -1,4 +1,4 @@
-package org.Foxraft.battleRoyale.teams;
+package org.Foxraft.battleRoyale.models;
 
 import java.util.List;
 

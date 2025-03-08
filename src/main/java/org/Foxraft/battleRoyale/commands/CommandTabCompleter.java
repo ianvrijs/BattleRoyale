@@ -13,17 +13,32 @@ public class CommandTabCompleter implements TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("setup", "team");
+            List<String> commands = new ArrayList<>();
+            if (sender.hasPermission("br.admin")) {
+                commands.add("setup");
+            }
+            if (sender.hasPermission("br.use")) {
+                commands.add("team");
+            }
+            return commands;
         }
 
-        if (args[0].equalsIgnoreCase("setup")) {
+        if (args[0].equalsIgnoreCase("setup") && sender.hasPermission("br.admin")) {
             if (args.length == 2) {
                 return Arrays.asList("setlobby", "setmapradius", "setstormspeed", "setgulag", "setgracetime", "setgulagheight");
             }
         }
 
         if (args[0].equalsIgnoreCase("team")) {
-            return Arrays.asList("create", "add", "remove");
+            List<String> teamCommands = new ArrayList<>();
+            if (sender.hasPermission("br.use")) {
+                teamCommands.add("invite");
+                teamCommands.add("accept");
+            }
+            if (sender.hasPermission("br.admin")) {
+                teamCommands.addAll(Arrays.asList("create", "add", "remove"));
+            }
+            return teamCommands;
         }
         return new ArrayList<>();
     }
