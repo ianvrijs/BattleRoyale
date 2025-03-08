@@ -1,7 +1,6 @@
 package org.Foxraft.battleRoyale;
 
 import org.Foxraft.battleRoyale.commands.CommandTabCompleter;
-import org.Foxraft.battleRoyale.teams.TeamHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.Foxraft.battleRoyale.commands.CommandHandler;
 

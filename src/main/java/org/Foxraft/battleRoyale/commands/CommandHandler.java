@@ -1,5 +1,6 @@
 package org.Foxraft.battleRoyale.commands;
 
+import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,11 +14,13 @@ public class CommandHandler implements CommandExecutor {
     private final BattleRoyale plugin;
     private final TeamManager teamManager;
     private final SetupManager setupManager;
+    private final InviteManager inviteManager;
 
     public CommandHandler(BattleRoyale plugin) {
         this.plugin = plugin;
         this.teamManager = new TeamManager(plugin);
         this.setupManager = new SetupManager(plugin);
+        this.inviteManager = new InviteManager(teamManager);
     }
 
     @Override
@@ -105,7 +108,7 @@ public class CommandHandler implements CommandExecutor {
 
     private void handleTeamCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /br team <create|add|remove> [args]");
+            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept> [args]");
             return;
         }
 
@@ -150,6 +153,30 @@ public class CommandHandler implements CommandExecutor {
                     }
                 } else {
                     sender.sendMessage(ChatColor.RED + "Usage: /br team remove {player}");
+                }
+                break;
+            case "invite":
+                if (args.length == 3 && sender instanceof Player inviter) {
+                    Player invitee = plugin.getServer().getPlayer(args[2]);
+                    if (invitee != null) {
+                        inviteManager.invitePlayer(inviter, invitee);
+                    } else {
+                        sender.sendMessage(ChatColor.RED + "Player not found.");
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Usage: /br team invite {player}");
+                }
+                break;
+            case "accept":
+                if (args.length == 3 && sender instanceof Player invitee) {
+                    Player inviter = plugin.getServer().getPlayer(args[2]);
+                    if (inviter != null) {
+                        inviteManager.acceptInvitation(invitee, inviter);
+                    } else {
+                        sender.sendMessage(ChatColor.RED + "Player not found.");
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Usage: /br team accept {player}");
                 }
                 break;
             default:

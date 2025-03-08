@@ -1,6 +1,6 @@
 package org.Foxraft.battleRoyale.managers;
 
-import org.Foxraft.battleRoyale.teams.Team;
+import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,9 +13,10 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TeamManager {
-    private final Map<String, Team> teams = new HashMap<>();
+    private final Map<String, Team> teams = new ConcurrentHashMap<>();
     private final File teamsFile;
 
     public TeamManager(JavaPlugin plugin) {
@@ -24,8 +25,12 @@ public class TeamManager {
     }
 
     public void createTeam(Player player1, Player player2) {
+        if (isPlayerInAnyTeam(player1) || isPlayerInAnyTeam(player2)) {
+            Bukkit.getLogger().warning("One or both players are already in a team.");
+            return;
+        }
         String teamId = String.valueOf(teams.size() + 1);
-        Team team = new Team(teamId, new ArrayList<>(Arrays.asList(player1.getName(), player2.getName())));
+        Team team = new Team(teamId, Arrays.asList(player1.getName(), player2.getName()));
         teams.put(teamId, team);
         saveTeams();
     }
@@ -33,20 +38,38 @@ public class TeamManager {
     public void addPlayerToTeam(Player player, String teamId) {
         Team team = teams.get(teamId);
         if (team != null) {
-            List<String> players = new ArrayList<>(team.getPlayers());
-            players.add(player.getName());
-            team.setPlayers(players);
+            synchronized (team) {
+                if (team.getPlayers().contains(player.getName())) {
+                    Bukkit.getLogger().warning("Player is already in the team.");
+                    return;
+                }
+                if (team.getPlayers().size() >= 2) {
+                    Bukkit.getLogger().warning("Team is already full.");
+                    return;
+                }
+                team.getPlayers().add(player.getName());
+            }
             saveTeams();
         }
     }
 
     public void removePlayerFromTeam(Player player) {
-        for (Team team : teams.values()) {
-            if (team.getPlayers().remove(player.getName())) {
-                saveTeams();
-                break;
+        for (Map.Entry<String, Team> entry : teams.entrySet()) {
+            Team team = entry.getValue();
+            synchronized (team) {
+                if (team.getPlayers().remove(player.getName())) {
+                    if (team.getPlayers().isEmpty()) {
+                        teams.remove(entry.getKey());
+                    }
+                    saveTeams();
+                    break;
+                }
             }
         }
+    }
+
+    public Map<String, Team> getTeams() {
+        return teams;
     }
 
     private void loadTeams() {
@@ -57,21 +80,19 @@ public class TeamManager {
         try (FileInputStream inputStream = new FileInputStream(teamsFile)) {
             Yaml yaml = new Yaml(new Constructor(new org.yaml.snakeyaml.LoaderOptions()));
             Map<String, Map<String, Object>> data = yaml.load(inputStream);
+            if (data == null) {
+                data = new HashMap<>();
+            }
             for (Map.Entry<String, Map<String, Object>> entry : data.entrySet()) {
                 String teamId = entry.getKey();
                 Map<String, Object> teamData = entry.getValue();
                 List<String> players = (List<String>) teamData.get("players");
                 Object scoreObj = teamData.get("score");
-                long score;
-                if (scoreObj instanceof Integer) {
-                    score = ((Integer) scoreObj).longValue();
-                } else {
-                    score = (Long) scoreObj;
-                }
+                long score = (scoreObj instanceof Integer) ? ((Integer) scoreObj).longValue() : (Long) scoreObj;
                 teams.put(teamId, new Team(teamId, new ArrayList<>(players), score));
             }
-        } catch (IOException e) {
-            Bukkit.getLogger().warning("Failed to load teams.");
+        } catch (IOException | ClassCastException e) {
+            Bukkit.getLogger().warning("Failed to load teams: " + e.getMessage());
         }
     }
 
@@ -90,7 +111,11 @@ public class TeamManager {
             Yaml yaml = new Yaml(options);
             yaml.dump(data, writer);
         } catch (IOException e) {
-            Bukkit.getLogger().warning("Failed to save teams.");
+            Bukkit.getLogger().warning("Failed to save teams: " + e.getMessage());
         }
+    }
+
+    public boolean isPlayerInAnyTeam(Player player) {
+        return teams.values().stream().anyMatch(team -> team.getPlayers().contains(player.getName()));
     }
 }

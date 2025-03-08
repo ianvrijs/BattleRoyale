@@ -7,3 +7,13 @@ commands:
     permission: br.use
     description: Battle Royale command
     usage: /<command>
+permissions:
+  br.use:
+    description: Allows use of the /br command
+    default: true
+  br.team.invite:
+    description: Allows players to invite others to their team
+    default: true
+  br.team.accept:
+    description: Allows players to accept team invitations
+    default: true
