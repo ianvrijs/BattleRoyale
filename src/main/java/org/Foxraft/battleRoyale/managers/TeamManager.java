@@ -52,17 +52,22 @@ public class TeamManager {
             saveTeams();
         }
     }
-
+    //TODO fix exception when team gets cleared and remade with same id
     public void removePlayerFromTeam(Player player) {
-        for (Map.Entry<String, Team> entry : teams.entrySet()) {
-            Team team = entry.getValue();
-            synchronized (team) {
-                if (team.getPlayers().remove(player.getName())) {
-                    if (team.getPlayers().isEmpty()) {
-                        teams.remove(entry.getKey());
+        synchronized (teams) {
+            Iterator<Map.Entry<String, Team>> iterator = teams.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Team> entry = iterator.next();
+                Team team = entry.getValue();
+                synchronized (team) {
+                    if (team.getPlayers().contains(player.getName())) {
+                        team.getPlayers().remove(player.getName());
+                        if (team.getPlayers().isEmpty()) {
+                            iterator.remove();
+                        }
+                        saveTeams();
+                        return;
                     }
-                    saveTeams();
-                    break;
                 }
             }
         }

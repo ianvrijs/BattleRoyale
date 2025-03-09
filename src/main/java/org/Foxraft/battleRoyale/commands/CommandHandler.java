@@ -1,6 +1,9 @@
 package org.Foxraft.battleRoyale.commands;
 
+import org.Foxraft.battleRoyale.config.GameManagerConfig;
+import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.managers.InviteManager;
+import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -10,17 +13,22 @@ import org.Foxraft.battleRoyale.BattleRoyale;
 import org.Foxraft.battleRoyale.managers.SetupManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 
+
 public class CommandHandler implements CommandExecutor {
     private final BattleRoyale plugin;
     private final TeamManager teamManager;
     private final SetupManager setupManager;
     private final InviteManager inviteManager;
+    private final GameManager gameManager;
+    private final PlayerManager playerManager;
 
-    public CommandHandler(BattleRoyale plugin) {
+    public CommandHandler(BattleRoyale plugin, GameManagerConfig config) {
         this.plugin = plugin;
-        this.teamManager = new TeamManager(plugin);
+        this.teamManager = config.getTeamManager();
         this.setupManager = new SetupManager(plugin);
-        this.inviteManager = new InviteManager(teamManager);
+        this.inviteManager = config.getInviteManager();
+        this.playerManager = config.getPlayerManager();
+        this.gameManager = new GameManager(config);
     }
 
     @Override
@@ -37,6 +45,12 @@ public class CommandHandler implements CommandExecutor {
                 break;
             case "team":
                 handleTeamCommand(sender, args);
+                break;
+            case "start":
+                gameManager.startGame(sender);
+                break;
+            case "stop":
+                gameManager.stopGame();
                 break;
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + subCommand);
@@ -153,6 +167,18 @@ public class CommandHandler implements CommandExecutor {
                     }
                 } else {
                     sender.sendMessage(ChatColor.RED + "Usage: /br team remove {player}");
+                }
+                break;
+            case "leave":
+                if (sender instanceof Player player) {
+                    if (teamManager.isPlayerInAnyTeam(player)) {
+                        teamManager.removePlayerFromTeam(player);
+                        sender.sendMessage(ChatColor.GREEN + "You have left your team.");
+                    } else {
+                        sender.sendMessage(ChatColor.RED + "You are not in any team.");
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.RED + "This command can only be run by a player.");
                 }
                 break;
             case "invite":
