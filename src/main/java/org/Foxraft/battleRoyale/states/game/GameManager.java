@@ -1,8 +1,6 @@
 package org.Foxraft.battleRoyale.states.game;
 
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.listeners.GracePeriodListener;
-import org.Foxraft.battleRoyale.listeners.PlayerDeathListener;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.models.Team;
@@ -12,32 +10,31 @@ import org.Foxraft.battleRoyale.utils.StartUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.java.JavaPlugin;
 
+//javadoc:
+
+/**
+ * This class manages the game state and transitions between game states.
+ * It depends on the PlayerManager, TeamManager, and StartUtils classes.
+ */
 public class GameManager {
     private final JavaPlugin plugin;
-    private final GameManagerConfig config;
     private final PlayerManager playerManager;
-    private GameState currentState = GameState.LOBBY;
-    private final TeamManager teamManager;
-    private final InviteManager inviteManager;
     private final StartUtils startUtils;
     private final GracePeriodListener gracePeriodListener = new GracePeriodListener();
-    private final PlayerDeathListener playerDeathListener;
+    private final TeamManager teamManager;
+    private GameState currentState = GameState.LOBBY;
 
-    public GameManager(GameManagerConfig config) {
-        this.plugin = config.getPlugin();
-        this.teamManager = config.getTeamManager();
-        this.inviteManager = config.getInviteManager();
-        this.playerManager = config.getPlayerManager();
-        this.startUtils = config.getStartUtils();
-        this.config = config;
-        this.playerDeathListener = new PlayerDeathListener(config);
-        config.setGameManager(this);
+    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils) {
+        this.plugin = plugin;
+        this.playerManager = playerManager;
+        this.teamManager = teamManager;
+        this.startUtils = startUtils;
     }
 
     public void startGame(CommandSender sender) {
@@ -65,9 +62,6 @@ public class GameManager {
         }, 5 * 20); // wait 5s for countdown to finish
 
         sender.sendMessage(ChatColor.GREEN + "Game started successfully with a grace period of " + graceTimeMinutes + " minutes.");
-
-        PluginManager pluginManager = Bukkit.getPluginManager();
-        pluginManager.registerEvents(playerDeathListener, plugin);
 
         // Set player state to ALIVE for all players in teams
         for (Team team : teamManager.getTeams().values()) {
@@ -102,14 +96,12 @@ public class GameManager {
                 }
             }
         }
-        HandlerList.unregisterAll(playerDeathListener);
     }
 
     private void startGraceState(long graceTimeTicks) {
         setState(GameState.GRACE);
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(gracePeriodListener, plugin);
-
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             HandlerList.unregisterAll(gracePeriodListener);
             startStormState();

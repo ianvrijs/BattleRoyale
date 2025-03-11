@@ -1,12 +1,16 @@
 package org.Foxraft.battleRoyale.states.player;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.states.game.GameState;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
 
 import java.util.HashMap;
 import java.util.Map;
-
+/**
+ * This class manages the state of players in the game.
+ * Dependencies: PlayerState, Player, GameState, GulagManager
+ */
 public class PlayerManager {
 
     private final Map<Player, PlayerState> playerStates = new HashMap<>();
@@ -14,6 +18,7 @@ public class PlayerManager {
 
     public void setPlayerState(Player player, PlayerState state) {
         playerStates.put(player, state);
+        Bukkit.getLogger().info("Player " + player.getName() + " is now in state " + state);
     }
 
     public PlayerState getPlayerState(Player player) {

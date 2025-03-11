@@ -1,6 +1,5 @@
 package org.Foxraft.battleRoyale.managers;
 
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.models.Invite;
 import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
@@ -11,16 +10,19 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
+/**
+ Manages player invites to teams.
+ depends on: Invite, TeamManager, JavaPlugin
+*/
 public class InviteManager {
     private final Map<String, Invite> invitations = new HashMap<>();
     private static final long INVITE_EXPIRATION_TIME = 60000; // 1 minute
     private final TeamManager teamManager;
     private final JavaPlugin plugin;
 
-    public InviteManager(GameManagerConfig config) {
-        this.teamManager = config.getTeamManager();
-        this.plugin = config.getPlugin();
+    public InviteManager(JavaPlugin plugin, TeamManager teamManager) {
+        this.teamManager = teamManager;
+        this.plugin = plugin;
     }
 
     public void invitePlayer(Player inviter, Player invitee) {

@@ -6,21 +6,28 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.entity.Player;
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
+import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.game.GameState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
+import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * This class listens for player death events and handles player respawning/ elimination.
+ * It depends on the GulagManager, PlayerManager, GameManager, and JavaPlugin classes.
+ */
 public class PlayerDeathListener implements Listener {
-    private final GameManagerConfig config;
     private final GulagManager gulagManager;
     private final PlayerManager playerManager;
+    private final GameManager gameManager;
+    private final JavaPlugin plugin;
 
-    public PlayerDeathListener(GameManagerConfig config) {
-        this.config = config;
-        this.gulagManager = config.getGulagManager();
-        this.playerManager = config.getPlayerManager();
+    public PlayerDeathListener(GulagManager gulagManager, PlayerManager playerManager, GameManager gameManager, JavaPlugin plugin) {
+        this.gulagManager = gulagManager;
+        this.playerManager = playerManager;
+        this.gameManager = gameManager;
+        this.plugin = plugin;
     }
 
     @EventHandler
@@ -30,8 +37,8 @@ public class PlayerDeathListener implements Listener {
         event.setKeepInventory(false);
         event.setKeepLevel(true);
 
-        Bukkit.getScheduler().runTaskLater(config.getPlugin(), () -> {
-            GameState gameState = config.getCurrentGameState();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            GameState gameState = gameManager.getCurrentState();
             PlayerState playerState = playerManager.getPlayerState(player);
             Bukkit.getLogger().info("Player " + player.getName() + " died. Current state: " + playerState + ", Game state: " + gameState);
 
@@ -70,7 +77,8 @@ public class PlayerDeathListener implements Listener {
 
     private void eliminatePlayer(Player player) {
         playerManager.setPlayerState(player, PlayerState.DEAD);
-        Location lobbyLocation = config.getGameManager().getLobbyLocation();
+        Bukkit.getLogger().info("Player state set to: " + playerManager.getPlayerState(player));
+        Location lobbyLocation = gameManager.getLobbyLocation();
         player.spigot().respawn();
         player.teleport(lobbyLocation);
         player.getInventory().clear();

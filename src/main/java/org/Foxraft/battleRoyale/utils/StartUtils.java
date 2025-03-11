@@ -1,6 +1,5 @@
 package org.Foxraft.battleRoyale.utils;
 
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
@@ -18,9 +17,9 @@ public class StartUtils {
     private final TeamManager teamManager;
     private List<Location> spawnLocations;
 
-    public StartUtils(GameManagerConfig config) {
-        this.plugin = config.getPlugin();
-        this.teamManager = config.getTeamManager();
+    public StartUtils(JavaPlugin plugin, TeamManager teamManager) {
+        this.plugin = plugin;
+        this.teamManager = teamManager;
     }
 
     public void generateSpawnLocationsAndTeleportTeams() {

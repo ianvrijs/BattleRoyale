@@ -1,6 +1,5 @@
 package org.Foxraft.battleRoyale.listeners;
 
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.game.GameState;
@@ -11,14 +10,18 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
+/**
+ * This class listens for player join events and handles player state changes.
+ * It depends on the PlayerManager, TeamManager, and GameManager classes.
+ */
 public class PlayerJoinListener implements Listener {
     private final PlayerManager playerManager;
     private final TeamManager teamManager;
     private final GameManager gameManager;
 
-    public PlayerJoinListener(GameManagerConfig config, GameManager gameManager) {
-        this.playerManager = config.getPlayerManager();
-        this.teamManager = config.getTeamManager();
+    public PlayerJoinListener(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager) {
+        this.playerManager = playerManager;
+        this.teamManager = teamManager;
         this.gameManager = gameManager;
     }
 //TODO implement actual handling instead of state handling

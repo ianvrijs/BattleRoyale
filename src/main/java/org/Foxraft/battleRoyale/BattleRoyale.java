@@ -1,7 +1,8 @@
 package org.Foxraft.battleRoyale;
 
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
+import org.Foxraft.battleRoyale.listeners.PlayerDeathListener;
 import org.Foxraft.battleRoyale.managers.InviteManager;
+import org.Foxraft.battleRoyale.managers.SetupManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
@@ -18,31 +19,21 @@ public final class BattleRoyale extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        GameManagerConfig config = new GameManagerConfig(this);
-
+        // Create instances of dependencies
         PlayerManager playerManager = new PlayerManager();
-        config.setPlayerManager(playerManager);
-
         TeamManager teamManager = new TeamManager(this);
-        config.setTeamManager(teamManager);
+        StartUtils startUtils = new StartUtils(this, teamManager);
+        GulagManager gulagManager = new GulagManager(playerManager, this);
+        InviteManager inviteManager = new InviteManager(this, teamManager);
+        SetupManager setupManager = new SetupManager(this);
+        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils);
 
-        StartUtils startUtils = new StartUtils(config);
-        config.setStartUtils(startUtils);
-
-        GulagManager gulagManager = new GulagManager(config);
-        config.setGulagManager(gulagManager);
-
-        InviteManager inviteManager = new InviteManager(config);
-        config.setInviteManager(inviteManager);
-
-        GameManager gameManager = new GameManager(config);
-        config.setGameManager(gameManager);
-
-        CommandHandler commandHandler = new CommandHandler(this, config);
+        CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager);
         Objects.requireNonNull(getCommand("br")).setExecutor(commandHandler);
         Objects.requireNonNull(getCommand("br")).setTabCompleter(new CommandTabCompleter());
 
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(config, gameManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerDeathListener(gulagManager, playerManager, gameManager, this), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(gameManager, teamManager, playerManager), this);
     }
 
     @Override

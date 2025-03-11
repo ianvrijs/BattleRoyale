@@ -15,10 +15,13 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ *  Manages teams and their players.
+ *  depends on: Team, JavaPlugin
+ */
 public class TeamManager {
     private final Map<String, Team> teams = new ConcurrentHashMap<>();
     private final File teamsFile;
-
     public TeamManager(JavaPlugin plugin) {
         this.teamsFile = new File(plugin.getDataFolder(), "teams.yml");
         loadTeams();

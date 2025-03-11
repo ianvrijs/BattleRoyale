@@ -1,6 +1,5 @@
 package org.Foxraft.battleRoyale.commands;
 
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
@@ -22,13 +21,13 @@ public class CommandHandler implements CommandExecutor {
     private final GameManager gameManager;
     private final PlayerManager playerManager;
 
-    public CommandHandler(BattleRoyale plugin, GameManagerConfig config) {
+    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager) {
         this.plugin = plugin;
-        this.teamManager = config.getTeamManager();
-        this.setupManager = new SetupManager(plugin);
-        this.inviteManager = config.getInviteManager();
-        this.playerManager = config.getPlayerManager();
-        this.gameManager = new GameManager(config);
+        this.teamManager = teamManager;
+        this.setupManager = setupManager;
+        this.inviteManager = inviteManager;
+        this.gameManager = gameManager;
+        this.playerManager = playerManager;
     }
 
     @Override

@@ -1,18 +1,22 @@
 package org.Foxraft.battleRoyale.states.gulag;
 
+import org.Foxraft.battleRoyale.states.gulag.GulagState;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Material;
-import org.Foxraft.battleRoyale.config.GameManagerConfig;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Queue;
-
+/**
+ * This class manages the Gulag state and handles player enlistment and fights in the Gulag.
+ * Dependencies: PlayerManager, Player, GulagState, PlayerState, Location, JavaPlugin
+ */
 public class GulagManager {
     private final PlayerManager playerManager;
     private final Location gulagLocation1;
@@ -23,28 +27,25 @@ public class GulagManager {
     private GulagState gulagState = GulagState.IDLE;
     private final int eliminationYLevel;
 
-    public GulagManager(GameManagerConfig config) {
-        this.playerManager = config.getPlayerManager();
-        if (this.playerManager == null) {
-            throw new IllegalArgumentException("PlayerManager cannot be null");
-        }
-        this.gulagLocation1 = getLocationFromConfig(config, "gulag1", null);
-        this.gulagLocation2 = getLocationFromConfig(config, "gulag2", null);
-        this.lobbyLocation = getLocationFromConfig(config, "lobby", null);
+    public GulagManager(PlayerManager playerManager, JavaPlugin plugin) {
+        this.playerManager = playerManager;
+        this.gulagLocation1 = getLocationFromConfig(plugin, "gulag1", null);
+        this.gulagLocation2 = getLocationFromConfig(plugin, "gulag2", null);
+        this.lobbyLocation = getLocationFromConfig(plugin, "lobby", null);
         this.defaultRespawnLocation = new Location(Bukkit.getWorld("world"), 0, Objects.requireNonNull(Bukkit.getWorld("world")).getHighestBlockYAt(0, 0) + 2, 0);
-        this.eliminationYLevel = config.getPlugin().getConfig().getInt("gulag.eliminationYLevel", 0);
+        this.eliminationYLevel = plugin.getConfig().getInt("gulag.eliminationYLevel", 0);
     }
 
-    private Location getLocationFromConfig(GameManagerConfig config, String path, Location defaultLocation) {
-        if (config == null || !config.getPlugin().getConfig().contains(path)) {
+    private Location getLocationFromConfig(JavaPlugin plugin, String path, Location defaultLocation) {
+        if (!plugin.getConfig().contains(path)) {
             return defaultLocation;
         }
-        String world = config.getPlugin().getConfig().getString(path + ".world", defaultLocation != null ? Objects.requireNonNull(defaultLocation.getWorld()).getName() : "world");
-        double x = config.getPlugin().getConfig().getDouble(path + ".x", defaultLocation != null ? defaultLocation.getX() : 0);
-        double y = config.getPlugin().getConfig().getDouble(path + ".y", defaultLocation != null ? defaultLocation.getY() : 64);
-        double z = config.getPlugin().getConfig().getDouble(path + ".z", defaultLocation != null ? defaultLocation.getZ() : 0);
-        float yaw = (float) config.getPlugin().getConfig().getDouble(path + ".yaw", defaultLocation != null ? defaultLocation.getYaw() : 0);
-        float pitch = (float) config.getPlugin().getConfig().getDouble(path + ".pitch", defaultLocation != null ? defaultLocation.getPitch() : 0);
+        String world = plugin.getConfig().getString(path + ".world", defaultLocation != null ? Objects.requireNonNull(defaultLocation.getWorld()).getName() : "world");
+        double x = plugin.getConfig().getDouble(path + ".x", defaultLocation != null ? defaultLocation.getX() : 0);
+        double y = plugin.getConfig().getDouble(path + ".y", defaultLocation != null ? defaultLocation.getY() : 64);
+        double z = plugin.getConfig().getDouble(path + ".z", defaultLocation != null ? defaultLocation.getZ() : 0);
+        float yaw = (float) plugin.getConfig().getDouble(path + ".yaw", defaultLocation != null ? defaultLocation.getYaw() : 0);
+        float pitch = (float) plugin.getConfig().getDouble(path + ".pitch", defaultLocation != null ? defaultLocation.getPitch() : 0);
         return new Location(Bukkit.getWorld(world), x, y, z, yaw, pitch);
     }
 
