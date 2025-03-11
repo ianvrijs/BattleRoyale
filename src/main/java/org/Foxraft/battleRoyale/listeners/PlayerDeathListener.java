@@ -50,7 +50,6 @@ public class PlayerDeathListener implements Listener {
                 case STORM:
                     if (playerState == PlayerState.ALIVE) {
                         player.spigot().respawn();
-                        Bukkit.getLogger().info("Enlisting player " + player.getName() + " in Gulag during STORM period.");
                         gulagManager.enlistInGulag(player);
                     } else {
                         Bukkit.getLogger().info("Eliminating player " + player.getName() + " during STORM period.");

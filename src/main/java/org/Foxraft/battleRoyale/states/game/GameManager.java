@@ -82,7 +82,7 @@ public class GameManager {
         double z = plugin.getConfig().getDouble("lobby.z");
         assert worldName != null;
         Location lobbyLocation = new Location(Bukkit.getWorld(worldName), x, y, z);
-
+        //TODO unregister gulag listener
         for (Team team : teamManager.getTeams().values()) {
             for (String playerName : team.getPlayers()) {
                 Player player = Bukkit.getPlayer(playerName);
@@ -98,6 +98,7 @@ public class GameManager {
         }
     }
 
+    //TODO enable keepinventory and keeplevel
     private void startGraceState(long graceTimeTicks) {
         setState(GameState.GRACE);
         PluginManager pluginManager = Bukkit.getPluginManager();

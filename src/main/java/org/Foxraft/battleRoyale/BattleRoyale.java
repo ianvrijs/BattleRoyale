@@ -1,6 +1,7 @@
 package org.Foxraft.battleRoyale;
 
 import org.Foxraft.battleRoyale.listeners.PlayerDeathListener;
+import org.Foxraft.battleRoyale.listeners.PlayerQuitListener;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.managers.SetupManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
@@ -34,6 +35,7 @@ public final class BattleRoyale extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(gulagManager, playerManager, gameManager, this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(gameManager, teamManager, playerManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerQuitListener(gulagManager), this);
     }
 
     @Override
