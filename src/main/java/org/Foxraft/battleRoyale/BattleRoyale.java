@@ -4,6 +4,7 @@ import org.Foxraft.battleRoyale.listeners.PlayerDeathListener;
 import org.Foxraft.battleRoyale.listeners.PlayerQuitListener;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.managers.SetupManager;
+import org.Foxraft.battleRoyale.managers.StormManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
@@ -27,7 +28,8 @@ public final class BattleRoyale extends JavaPlugin {
         GulagManager gulagManager = new GulagManager(playerManager, this);
         InviteManager inviteManager = new InviteManager(this, teamManager);
         SetupManager setupManager = new SetupManager(this);
-        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils);
+        StormManager stormManager = new StormManager(this);
+        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils, stormManager);
 
         CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager);
         Objects.requireNonNull(getCommand("br")).setExecutor(commandHandler);
@@ -36,6 +38,8 @@ public final class BattleRoyale extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(gulagManager, playerManager, gameManager, this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(gameManager, teamManager, playerManager), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(gulagManager), this);
+
+        stormManager.resetBorder();
     }
 
     @Override

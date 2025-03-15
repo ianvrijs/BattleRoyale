@@ -119,6 +119,7 @@ public class CommandHandler implements CommandExecutor {
         }
     }
 
+    //TODO implement /br team list {page} command
     private void handleTeamCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept> [args]");

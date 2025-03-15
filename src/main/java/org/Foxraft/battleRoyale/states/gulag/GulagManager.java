@@ -70,7 +70,7 @@ public class GulagManager {
             startGulagCountdown();
         } else {
             player.teleport(lobbyLocation);
-            player.sendMessage(ChatColor.RED + "Gulag is full. Please wait for the next match.");
+            player.sendMessage(ChatColor.RED + "Sumo is full. Please wait for the next match.");
         }
         if (gulagQueue.size() == 1 || gulagQueue.size() == 2) {
             Player player1 = gulagQueue.peek();
@@ -86,7 +86,7 @@ public class GulagManager {
         Player player2 = gulagQueue.size() > 1 ? ((LinkedList<Player>) gulagQueue).get(1) : null;
 
         if (player1 != null && player2 != null) {
-            Bukkit.broadcastMessage(ChatColor.GOLD + player1.getName() + ChatColor.GREEN +" will be fighting against " + ChatColor.GOLD +player2.getName() + ChatColor.GREEN+" in the Gulag!");
+            Bukkit.broadcastMessage(ChatColor.GOLD + player1.getName() + ChatColor.GREEN +" will be fighting against " + ChatColor.GOLD +player2.getName() + ChatColor.GREEN+" in the Ring of Redemption!");
 
             new BukkitRunnable() {
                 int countdown = 3;
@@ -123,7 +123,7 @@ public class GulagManager {
             return;
         }
         winner.sendMessage(ChatColor.GREEN + "You've redeemed yourself! You get one final chance.");
-        Bukkit.broadcastMessage(ChatColor.GOLD + winner.getName() + ChatColor.GOLD + " has won the Gulag! " + ChatColor.GOLD + "⚔");
+        Bukkit.broadcastMessage(ChatColor.GOLD + winner.getName() + ChatColor.GOLD + " has won the sumo! " + ChatColor.GOLD + "⚔");
         playerManager.setPlayerState(winner, PlayerState.RESURRECTED);
 
         // Teleport the winner immediately
