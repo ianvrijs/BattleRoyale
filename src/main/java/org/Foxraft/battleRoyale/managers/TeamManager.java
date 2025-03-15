@@ -15,10 +15,13 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ *  Manages teams and their players.
+ *  depends on: Team, JavaPlugin
+ */
 public class TeamManager {
     private final Map<String, Team> teams = new ConcurrentHashMap<>();
     private final File teamsFile;
-
     public TeamManager(JavaPlugin plugin) {
         this.teamsFile = new File(plugin.getDataFolder(), "teams.yml");
         loadTeams();
@@ -52,17 +55,22 @@ public class TeamManager {
             saveTeams();
         }
     }
-
+    //TODO fix exception when team gets cleared and remade with same id
     public void removePlayerFromTeam(Player player) {
-        for (Map.Entry<String, Team> entry : teams.entrySet()) {
-            Team team = entry.getValue();
-            synchronized (team) {
-                if (team.getPlayers().remove(player.getName())) {
-                    if (team.getPlayers().isEmpty()) {
-                        teams.remove(entry.getKey());
+        synchronized (teams) {
+            Iterator<Map.Entry<String, Team>> iterator = teams.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Team> entry = iterator.next();
+                Team team = entry.getValue();
+                synchronized (team) {
+                    if (team.getPlayers().contains(player.getName())) {
+                        team.getPlayers().remove(player.getName());
+                        if (team.getPlayers().isEmpty()) {
+                            iterator.remove();
+                        }
+                        saveTeams();
+                        return;
                     }
-                    saveTeams();
-                    break;
                 }
             }
         }

@@ -16,6 +16,8 @@ public class CommandTabCompleter implements TabCompleter {
             List<String> commands = new ArrayList<>();
             if (sender.hasPermission("br.admin")) {
                 commands.add("setup");
+                commands.add("start");
+                commands.add("stop");
             }
             if (sender.hasPermission("br.use")) {
                 commands.add("team");
@@ -34,6 +36,7 @@ public class CommandTabCompleter implements TabCompleter {
             if (sender.hasPermission("br.use")) {
                 teamCommands.add("invite");
                 teamCommands.add("accept");
+                teamCommands.add("leave");
             }
             if (sender.hasPermission("br.admin")) {
                 teamCommands.addAll(Arrays.asList("create", "add", "remove"));

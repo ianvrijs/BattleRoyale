@@ -1,4 +1,4 @@
-package org.Foxraft.battleRoyale.Game;
+package org.Foxraft.battleRoyale.states.game;
 
 public enum GameState {
     LOBBY,

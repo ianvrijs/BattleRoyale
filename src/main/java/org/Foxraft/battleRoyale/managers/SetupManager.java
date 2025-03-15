@@ -7,6 +7,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
 
+/**
+ * This class is responsible for setting up the plugin configuration.
+ * Depends on the JavaPlugin class.
+ */
 public class SetupManager {
     private final JavaPlugin plugin;
 

@@ -27,6 +27,10 @@ public class Team {
         return players;
     }
 
+    public String getName() {
+        return id;
+    }
+
     public long getScore() {
         return score;
     }
