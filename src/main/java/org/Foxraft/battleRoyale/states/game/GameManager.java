@@ -21,6 +21,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 /**
  * This class manages the game state and transitions between game states.
@@ -34,6 +36,7 @@ public class GameManager implements Listener {
     private final TeamManager teamManager;
     private GameState currentState = GameState.LOBBY;
     private final StormManager stormManager;
+    private int gracePeriodTaskId = -1;
 
     public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, StormManager stormManager) {
         this.plugin = plugin;
@@ -48,13 +51,13 @@ public class GameManager implements Listener {
     public void onStormReachedFinalDestination(StormReachedFinalDestinationEvent event) {
         startDeathmatchState();
     }
-    //TODO set all online players without a team inside a team, except for exempt players
     public void startGame(CommandSender sender) {
         if (currentState != GameState.LOBBY) {
             sender.sendMessage(ChatColor.RED + "Game has already been started.");
             return;
         }
         setState(GameState.STARTING);
+        sender.sendMessage(ChatColor.GREEN + "Generating spawn locations.. this might take a minute.");
         startUtils.generateSpawnLocationsAndTeleportTeams();
         startUtils.broadcastCountdown(5);
 
@@ -71,6 +74,29 @@ public class GameManager implements Listener {
         }
 
         final long graceTimeTicks = graceTimeMinutes * 60L * 20L;
+
+        // Automatically create new teams for players without a team
+        List<Player> playersWithoutTeam = new ArrayList<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!teamManager.isPlayerInAnyTeam(player)) {
+                playersWithoutTeam.add(player);
+            }
+        }
+
+        for (int i = 0; i < playersWithoutTeam.size(); i += 2) {
+            if (i + 1 < playersWithoutTeam.size()) {
+                Player player1 = playersWithoutTeam.get(i);
+                Player player2 = playersWithoutTeam.get(i + 1);
+                teamManager.createTeam(player1, player2);
+                player1.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player2.getName());
+                player2.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player1.getName());
+            } else {
+                // Create a solo team for the last player
+                Player player = playersWithoutTeam.get(i);
+                teamManager.createTeam(player, player);
+                player.sendMessage(ChatColor.GREEN + "You have been put into a solo team.");
+            }
+        }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             startUtils.teleportTeamsToSpawnLocations();
@@ -96,13 +122,8 @@ public class GameManager implements Listener {
         }
         setState(GameState.LOBBY);
         stormManager.stopStorm();
-        String worldName = plugin.getConfig().getString("lobby.world");
-        double x = plugin.getConfig().getDouble("lobby.x");
-        double y = plugin.getConfig().getDouble("lobby.y");
-        double z = plugin.getConfig().getDouble("lobby.z");
-        assert worldName != null;
-        Location lobbyLocation = new Location(Bukkit.getWorld(worldName), x, y, z);
-        //TODO unregister gulag listener
+        Location lobbyLocation = getLobbyLocation();
+        // TODO: Unregister gulag listener
         for (Team team : teamManager.getTeams().values()) {
             for (String playerName : team.getPlayers()) {
                 Player player = Bukkit.getPlayer(playerName);
@@ -116,22 +137,27 @@ public class GameManager implements Listener {
                 }
             }
         }
+        // Cancel grace period task if running
+        if (gracePeriodTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(gracePeriodTaskId);
+            gracePeriodTaskId = -1;
+        }
     }
 
     private void startGraceState(long graceTimeTicks) {
         setState(GameState.GRACE);
         PluginManager pluginManager = Bukkit.getPluginManager();
 
-        //disable pvp and enable keepinv
+        // Disable PvP and enable keep inventory
         pluginManager.registerEvents(gracePeriodListener, plugin);
         Objects.requireNonNull(Bukkit.getWorld("world")).setGameRule(GameRule.KEEP_INVENTORY, true);
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // logic once grace period ends
+        gracePeriodTaskId = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // Logic once grace period ends
             HandlerList.unregisterAll(gracePeriodListener);
             Objects.requireNonNull(Bukkit.getWorld("world")).setGameRule(GameRule.KEEP_INVENTORY, false);
             startStormState();
-        }, graceTimeTicks);
+        }, graceTimeTicks).getTaskId();
     }
 
     private void startStormState() {

@@ -65,8 +65,7 @@ public class CommandHandler implements CommandExecutor {
         }
 
         String action = args[1].toLowerCase();
-        if (sender instanceof Player) {
-            Player player = (Player) sender;
+        if (sender instanceof Player player) {
             try {
                 switch (action) {
                     case "setlobby":
@@ -203,6 +202,7 @@ public class CommandHandler implements CommandExecutor {
                 } else {
                     sender.sendMessage(ChatColor.RED + "Usage: /br team accept {player}");
                 }
+                break;
             case "list":
                 if(args.length == 3) {
                     int page = Integer.parseInt(args[2]);

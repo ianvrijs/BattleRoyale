@@ -35,7 +35,7 @@ public class TeamManager {
             return;
         }
         String teamId = String.valueOf(teams.size() + 1);
-        Team team = new Team(teamId, Arrays.asList(player1.getName(), player2.getName()));
+        Team team = new Team(teamId, new ArrayList<>(Arrays.asList(player1.getName(), player2.getName()))); // Mutable list
         teams.put(teamId, team);
         saveTeams();
     }
@@ -96,11 +96,12 @@ public class TeamManager {
             for (Map.Entry<String, Map<String, Object>> entry : data.entrySet()) {
                 String teamId = entry.getKey();
                 Map<String, Object> teamData = entry.getValue();
-                List<String> players = (List<String>) teamData.get("players");
+                List<String> players = new ArrayList<>((List<String>) teamData.get("players"));
                 Object scoreObj = teamData.get("score");
                 long score = (scoreObj instanceof Integer) ? ((Integer) scoreObj).longValue() : (Long) scoreObj;
-                teams.put(teamId, new Team(teamId, new ArrayList<>(players), score));
+                teams.put(teamId, new Team(teamId, players, score));
             }
+
         } catch (IOException | ClassCastException e) {
             Bukkit.getLogger().warning("Failed to load teams: " + e.getMessage());
         }
@@ -148,4 +149,12 @@ public class TeamManager {
             sender.sendMessage(ChatColor.YELLOW  +  "ID:" + ChatColor.GRAY + team.getName() + ChatColor.YELLOW +" - Players: " + ChatColor.GRAY +players);
         }
     }
+    public void createSoloTeam(Player player) {
+        String teamId = String.valueOf(teams.size() + 1);
+        Team team = new Team(teamId, new ArrayList<>(List.of(player.getName()))); // Ensures mutability
+        teams.put(teamId, team);
+        saveTeams();
+        player.sendMessage(ChatColor.GREEN + "You have been put into a new solo team.");
+    }
+
 }
