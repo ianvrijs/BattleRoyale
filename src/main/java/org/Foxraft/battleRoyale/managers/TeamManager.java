@@ -2,6 +2,8 @@ package org.Foxraft.battleRoyale.managers;
 
 import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.DumperOptions;
@@ -125,5 +127,25 @@ public class TeamManager {
 
     public boolean isPlayerInAnyTeam(Player player) {
         return teams.values().stream().anyMatch(team -> team.getPlayers().contains(player.getName()));
+    }
+    public void listTeams(CommandSender sender, int page) {
+        int teamsPerPage = 10;
+        List<Team> teams = new ArrayList<>(getTeams().values());
+        int totalPages = (int) Math.ceil((double) teams.size() / teamsPerPage);
+
+        if (page < 1 || page > totalPages) {
+            sender.sendMessage(ChatColor.RED + "Page number out of range. There are " + totalPages + " pages.");
+            return;
+        }
+
+        sender.sendMessage(ChatColor.GREEN + "Teams (Page " + page + "/" + totalPages + "):");
+        int start = (page - 1) * teamsPerPage;
+        int end = Math.min(start + teamsPerPage, teams.size());
+
+        for (int i = start; i < end; i++) {
+            Team team = teams.get(i);
+            String players = String.join(", ", team.getPlayers());
+            sender.sendMessage(ChatColor.YELLOW  +  "ID:" + ChatColor.GRAY + team.getName() + ChatColor.YELLOW +" - Players: " + ChatColor.GRAY +players);
+        }
     }
 }

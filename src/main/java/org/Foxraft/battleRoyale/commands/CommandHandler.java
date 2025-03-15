@@ -119,10 +119,9 @@ public class CommandHandler implements CommandExecutor {
         }
     }
 
-    //TODO implement /br team list {page} command
     private void handleTeamCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept> [args]");
+            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept|list> [args]");
             return;
         }
 
@@ -203,6 +202,13 @@ public class CommandHandler implements CommandExecutor {
                     }
                 } else {
                     sender.sendMessage(ChatColor.RED + "Usage: /br team accept {player}");
+                }
+            case "list":
+                if(args.length == 3) {
+                    int page = Integer.parseInt(args[2]);
+                    teamManager.listTeams(sender, page);
+                } else {
+                    teamManager.listTeams(sender, 1);
                 }
                 break;
             default:
