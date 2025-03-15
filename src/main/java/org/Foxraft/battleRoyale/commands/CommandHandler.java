@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.BattleRoyale;
 import org.Foxraft.battleRoyale.managers.SetupManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
+import org.Foxraft.battleRoyale.states.game.GameState;
 
 
 public class CommandHandler implements CommandExecutor {
@@ -120,11 +121,21 @@ public class CommandHandler implements CommandExecutor {
 
     private void handleTeamCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept|list> [args]");
+            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept|list|leave> [args]");
             return;
         }
 
         String action = args[1].toLowerCase();
+        switch (action) {
+            case "invite":
+            case "accept":
+            case "leave":
+                if (gameManager.getCurrentState() != GameState.LOBBY) {
+                    sender.sendMessage(ChatColor.RED + "You can't do this right now.");
+                    return;
+                }
+                break;
+        }
         switch (action) {
             case "create":
                 if (args.length == 4 && sender instanceof Player) {
@@ -204,7 +215,7 @@ public class CommandHandler implements CommandExecutor {
                 }
                 break;
             case "list":
-                if(args.length == 3) {
+                if (args.length == 3) {
                     int page = Integer.parseInt(args[2]);
                     teamManager.listTeams(sender, page);
                 } else {

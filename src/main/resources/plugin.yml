@@ -7,13 +7,26 @@ commands:
     permission: br.use
     description: Battle Royale command
     usage: /<command>
-permissions:
-  br.use:
-    description: Allows use of the /br command
-    default: true
-  br.team.invite:
-    description: Allows players to invite others to their team
-    default: true
-  br.team.accept:
-    description: Allows players to accept team invitations
-    default: true
+    aliases: [battleroyale]
+    subcommands:
+      team:
+        permission: br.team
+        description: Team commands
+        usage: /<command> team <subcommand>
+        subcommands:
+          invite:
+            permission: br.team
+            description: Invite a player to your team
+            usage: /<command> team invite <player>
+          accept:
+            permission: br.team
+            description: Invite a player to your team
+            usage: /<command> team invite <player>
+          leave:
+            permission: br.team
+            description: Leave your team
+            usage: /<command> team leave
+          list:
+            permission: br.team
+            description: List all teams
+            usage: /<command> team list <page>

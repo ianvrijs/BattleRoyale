@@ -57,7 +57,6 @@ public class TeamManager {
             saveTeams();
         }
     }
-    //TODO fix exception when team gets cleared and remade with same id
     public void removePlayerFromTeam(Player player) {
         synchronized (teams) {
             Iterator<Map.Entry<String, Team>> iterator = teams.entrySet().iterator();
@@ -156,5 +155,12 @@ public class TeamManager {
         saveTeams();
         player.sendMessage(ChatColor.GREEN + "You have been put into a new solo team.");
     }
-
+    public String getPlayerTeam(Player player) {
+        for (Team team : teams.values()) {
+            if (team.getPlayers().contains(player.getName())) {
+                return team.getId();
+            }
+        }
+        return null;
+    }
 }

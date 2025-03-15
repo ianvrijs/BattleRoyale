@@ -30,20 +30,25 @@ public class StartUtils {
     public void teleportTeamsToSpawnLocations() {
         int index = 0;
         for (Team team : teamManager.getTeams().values()) {
-            Location spawnLocation = spawnLocations.get(index++);
-            Bukkit.getLogger().info("Teleporting team " + team.getName() + " to location: " + spawnLocation);
-            for (String playerName : team.getPlayers()) {
-                Player player = Bukkit.getPlayer(playerName);
-                if (player != null) {
-                    Bukkit.getLogger().info("Teleporting player " + playerName + " to location: " + spawnLocation);
-                    player.teleport(spawnLocation);
-                } else {
-                    Bukkit.getLogger().warning("Player " + playerName + " is not online and cannot be teleported.");
+            if (index < spawnLocations.size()) {
+                Location spawnLocation = spawnLocations.get(index++);
+                Bukkit.getLogger().info("Teleporting team " + team.getName() + " to location: " + spawnLocation);
+                for (String playerName : team.getPlayers()) {
+                    Player player = Bukkit.getPlayer(playerName);
+                    if (player != null) {
+                        Bukkit.getLogger().info("Teleporting player " + playerName + " to location: " + spawnLocation);
+                        player.teleport(spawnLocation);
+                    } else {
+                        Bukkit.getLogger().warning("Player " + playerName + " is not online and cannot be teleported.");
+                    }
                 }
+            } else {
+                Bukkit.getLogger().warning("Not enough spawn locations for all teams.");
+                break;
             }
         }
     }
-
+    //TODO optimize this method
     private List<Location> generateSpawnLocations(int mapRadius, int teamCount) {
         List<Location> locations = new ArrayList<>();
         double angleIncrement = 2 * Math.PI / teamCount;

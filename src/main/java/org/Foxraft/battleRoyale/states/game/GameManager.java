@@ -2,6 +2,7 @@ package org.Foxraft.battleRoyale.states.game;
 
 import org.Foxraft.battleRoyale.events.StormReachedFinalDestinationEvent;
 import org.Foxraft.battleRoyale.listeners.GracePeriodListener;
+import org.Foxraft.battleRoyale.listeners.TeamDamageListener;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.managers.StormManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
@@ -34,15 +35,17 @@ public class GameManager implements Listener {
     private final StartUtils startUtils;
     private final GracePeriodListener gracePeriodListener = new GracePeriodListener();
     private final TeamManager teamManager;
+    private final TeamDamageListener teamDamageListener;
     private GameState currentState = GameState.LOBBY;
     private final StormManager stormManager;
     private int gracePeriodTaskId = -1;
 
-    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, StormManager stormManager) {
+    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.teamManager = teamManager;
         this.startUtils = startUtils;
+        this.teamDamageListener = teamDamageListener;
         this.stormManager = stormManager;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -91,10 +94,7 @@ public class GameManager implements Listener {
                 player1.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player2.getName());
                 player2.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player1.getName());
             } else {
-                // Create a solo team for the last player
-                Player player = playersWithoutTeam.get(i);
-                teamManager.createTeam(player, player);
-                player.sendMessage(ChatColor.GREEN + "You have been put into a solo team.");
+                teamManager.createSoloTeam(playersWithoutTeam.get(i));
             }
         }
 
@@ -167,6 +167,8 @@ public class GameManager implements Listener {
         }
         setState(GameState.STORM);
         stormManager.startStorm();
+        PluginManager pluginManager = Bukkit.getPluginManager();
+        pluginManager.registerEvents(teamDamageListener, plugin);
     }
 
     //TODO implement deathmatch utils
@@ -188,6 +190,11 @@ public class GameManager implements Listener {
                     player.sendMessage(message);
                 }
             }
+        }
+        if (newState == GameState.STORM) {
+            Bukkit.getPluginManager().registerEvents(teamDamageListener, plugin);
+        } else if (newState == GameState.LOBBY) {
+            HandlerList.unregisterAll(teamDamageListener);
         }
     }
 
