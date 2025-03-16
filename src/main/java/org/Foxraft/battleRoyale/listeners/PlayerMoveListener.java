@@ -2,8 +2,8 @@ package org.Foxraft.battleRoyale.listeners;
 
 import org.Foxraft.battleRoyale.states.gulag.GulagState;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
@@ -15,7 +15,7 @@ public class PlayerMoveListener implements Listener {
     private final Player player1;
     private final Player player2;
     private final GulagManager gulagManager;
-    private boolean listenerUnregistered = false;
+    private boolean isActive = true;
 
     public PlayerMoveListener(Player player1, Player player2, GulagManager gulagManager) {
         this.player1 = player1;
@@ -25,38 +25,62 @@ public class PlayerMoveListener implements Listener {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
-        if (listenerUnregistered) {
+        if (!isActive) {
             return;
         }
 
-        // Prevent moving before sumo starts
         Player player = event.getPlayer();
-        if (player.equals(player1) || player.equals(player2)) {
-            if (gulagManager.isCountdownActive() || gulagManager.getGulagState() != GulagState.ONGOING) {
-                if (event.getFrom().getX() != Objects.requireNonNull(event.getTo()).getX() ||
-                        event.getFrom().getY() != event.getTo().getY() ||
-                        event.getFrom().getZ() != event.getTo().getZ()) {
-                    event.setCancelled(true);
-                }
-            }
+        if (!isGulagParticipant(player)) {
+            return;
+        }
 
-            // Handle win/loss
-            if ((int) player.getLocation().getY() < gulagManager.getEliminationYLevel()) {
-                listenerUnregistered = true;
-                Bukkit.getScheduler().runTask(gulagManager.getPlugin(), gulagManager::unregisterPlayerMoveListener);
-                Player winner;
-                Player loser;
-                if (player.equals(player1)) {
-                    loser = player1;
-                    winner = player2;
-                } else {
-                    loser = player2;
-                    winner = player1;
-                }
-                if (player1 != null && player2 != null) {
-                    gulagManager.handleGulagLoss(loser);
-                    gulagManager.handleGulagWin(winner);
-                }
+        if (shouldPreventMovement(player)) {
+            preventMovement(event);
+            return;
+        }
+
+        checkForElimination(player);
+    }
+
+    private boolean isGulagParticipant(Player player) {
+        return player.equals(player1) || player.equals(player2);
+    }
+
+    private boolean shouldPreventMovement(Player player) {
+        return gulagManager.isCountdownActive() || gulagManager.getGulagState() != GulagState.ONGOING;
+    }
+
+    private void preventMovement(PlayerMoveEvent event) {
+        if (hasPlayerMoved(event)) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean hasPlayerMoved(PlayerMoveEvent event) {
+        return event.getFrom().getX() != Objects.requireNonNull(event.getTo()).getX() ||
+                event.getFrom().getY() != event.getTo().getY() ||
+                event.getFrom().getZ() != event.getTo().getZ();
+    }
+
+    private void checkForElimination(Player player) {
+        if (player.getLocation().getY() < gulagManager.getEliminationYLevel()) {
+            endMatch(player);
+        }
+    }
+
+    private void endMatch(Player loser) {
+        if (!isActive) {
+            return;
+        }
+        isActive = false;
+
+        if (loser != null && loser.isOnline()) {
+            Player winner = loser.equals(player1) ? player2 : player1;
+            if (winner != null && winner.isOnline()) {
+                Bukkit.getScheduler().runTask(gulagManager.getPlugin(), () -> {
+                    HandlerList.unregisterAll(this);
+                    gulagManager.processGulagResult(winner, loser);
+                });
             }
         }
     }

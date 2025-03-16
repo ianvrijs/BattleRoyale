@@ -30,7 +30,7 @@ public class StartUtils {
     public void teleportTeamsToSpawnLocations() {
         int index = 0;
         for (Team team : teamManager.getTeams().values()) {
-            if (index < spawnLocations.size()) {
+            if (index <= spawnLocations.size()) {
                 Location spawnLocation = spawnLocations.get(index++);
                 Bukkit.getLogger().info("Teleporting team " + team.getName() + " to location: " + spawnLocation);
                 for (String playerName : team.getPlayers()) {

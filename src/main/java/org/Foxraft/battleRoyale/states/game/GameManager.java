@@ -7,6 +7,7 @@ import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.managers.StormManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.models.Team;
+import org.Foxraft.battleRoyale.states.gulag.GulagManager;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.Foxraft.battleRoyale.utils.StartUtils;
@@ -36,22 +37,24 @@ public class GameManager implements Listener {
     private final GracePeriodListener gracePeriodListener = new GracePeriodListener();
     private final TeamManager teamManager;
     private final TeamDamageListener teamDamageListener;
+    private final GulagManager gulagManager;
     private GameState currentState = GameState.LOBBY;
     private final StormManager stormManager;
     private int gracePeriodTaskId = -1;
 
-    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager) {
+    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.teamManager = teamManager;
         this.startUtils = startUtils;
         this.teamDamageListener = teamDamageListener;
         this.stormManager = stormManager;
+        this.gulagManager = gulagManager;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
-
     @EventHandler
     public void onStormReachedFinalDestination(StormReachedFinalDestinationEvent event) {
+        Bukkit.getLogger().info("StormReachedFinalDestinationEvent received");
         startDeathmatchState();
     }
     public void startGame(CommandSender sender) {
@@ -174,8 +177,9 @@ public class GameManager implements Listener {
     //TODO implement deathmatch utils
     private void startDeathmatchState() {
         setState(GameState.DEATHMATCH);
-        //eliminate all players in sumo queue
-        //flicker border color
+        gulagManager.clearGulag();
+        // Flicker border color (if needed)
+        // TODO: Implement border color flicker logic
     }
 
     private void setState(GameState newState) {
