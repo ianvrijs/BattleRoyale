@@ -42,5 +42,11 @@ public class DeathMessageListener implements Listener {
         else if (cause == EntityDamageEvent.DamageCause.SUFFOCATION) {
             event.setDeathMessage(deathMessageManager.getSuffocatedDeathMessage(victim));
         }
+        else if (cause == EntityDamageEvent.DamageCause.VOID) {
+            event.setDeathMessage(deathMessageManager.getStormDeathMessage(victim));
+        }
+        else if (cause == EntityDamageEvent.DamageCause.WORLD_BORDER) {
+            event.setDeathMessage(deathMessageManager.getWorldBorderDeathMessage(victim));
+        }
     }
 }

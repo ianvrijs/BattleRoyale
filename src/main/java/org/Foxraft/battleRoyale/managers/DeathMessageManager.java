@@ -42,4 +42,8 @@ public class DeathMessageManager {
     public String getTeamEliminatedMessage(String teamName) {
         return ChatColor.RED + "☠ | " + ChatColor.GRAY + "Team " + teamName + ChatColor.RED + " has been eliminated!";
     }
+
+    public String getWorldBorderDeathMessage(Player victim) {
+        return ChatColor.RED + "☠ | " + ChatColor.GRAY + victim.getName() + ChatColor.RED + " was consumed by the storm";
+    }
 }

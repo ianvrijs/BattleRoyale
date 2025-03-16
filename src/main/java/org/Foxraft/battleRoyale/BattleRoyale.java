@@ -25,10 +25,11 @@ public final class BattleRoyale extends JavaPlugin {
             return;
         }
         world.setPVP(true);
-
         DeathMessageManager deathMessageManager = new DeathMessageManager();
         PlayerManager playerManager = new PlayerManager();
         TeamManager teamManager = new TeamManager(this, playerManager);
+        TabManager tabManager = new TabManager(teamManager);
+        getServer().getPluginManager().registerEvents(tabManager, this);
         TeamDamageListener teamDamageListener = new TeamDamageListener(teamManager, playerManager);
         StartUtils startUtils = new StartUtils(this, teamManager);
         GulagManager gulagManager = new GulagManager(playerManager, this, teamManager);
@@ -36,7 +37,7 @@ public final class BattleRoyale extends JavaPlugin {
         SetupManager setupManager = new SetupManager(this);
         StormManager stormManager = new StormManager(this);
         TimerManager timerManager = new TimerManager(this, stormManager);
-        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils, teamDamageListener, stormManager, gulagManager, timerManager);
+        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils, teamDamageListener, stormManager, gulagManager, timerManager, tabManager);
         gulagManager.setGameManager(gameManager);
         CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager);
         Objects.requireNonNull(getCommand("br")).setExecutor(commandHandler);

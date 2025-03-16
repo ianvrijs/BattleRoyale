@@ -3,10 +3,7 @@ package org.Foxraft.battleRoyale.states.game;
 import org.Foxraft.battleRoyale.events.StormReachedFinalDestinationEvent;
 import org.Foxraft.battleRoyale.listeners.GracePeriodListener;
 import org.Foxraft.battleRoyale.listeners.TeamDamageListener;
-import org.Foxraft.battleRoyale.managers.InviteManager;
-import org.Foxraft.battleRoyale.managers.StormManager;
-import org.Foxraft.battleRoyale.managers.TeamManager;
-import org.Foxraft.battleRoyale.managers.TimerManager;
+import org.Foxraft.battleRoyale.managers.*;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
 import org.Foxraft.battleRoyale.states.gulag.GulagState;
@@ -44,9 +41,10 @@ public class GameManager implements Listener {
     private GameState currentState = GameState.LOBBY;
     private final StormManager stormManager;
     private final TimerManager timerManager;
+    private final TabManager tabManager;
     private int gracePeriodTaskId = -1;
 
-    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager) {
+    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager, TabManager tabManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.teamManager = teamManager;
@@ -55,6 +53,7 @@ public class GameManager implements Listener {
         this.stormManager = stormManager;
         this.gulagManager = gulagManager;
         this.timerManager = timerManager;
+        this.tabManager = tabManager;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
     @EventHandler
@@ -196,6 +195,10 @@ public class GameManager implements Listener {
         // Start timer for new state
         timerManager.startTimer(getCurrentState());
 
+        tabManager.updateHeaderFooter(newState);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            tabManager.updatePlayerTab(player, playerManager.getPlayerState(player));
+        }
         String message = switch (newState) {
             case STARTING -> ChatColor.GREEN + "⚔ Prepare for battle! The game is starting...";
             case GRACE -> ChatColor.YELLOW + "☮ Grace period has begun! Gather resources and prepare your strategy.";
