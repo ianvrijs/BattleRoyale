@@ -5,6 +5,7 @@ import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -74,11 +75,10 @@ public class StartUtils {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (count > 0) {
                         player.sendTitle(ChatColor.YELLOW + "Game starts in", ChatColor.RED + String.valueOf(count), 10, 20, 10);
-                        player.playSound(player.getLocation(), "minecraft:block.note_block.pling", 1.0f, 1.0f); // Ding sound
+                        player.playSound(player.getLocation(), "minecraft:block.note_block.pling", 1.0f, 1.0f);
                     } else {
                         player.sendTitle(ChatColor.GREEN + "Good luck!", "", 10, 20, 10);
-                        player.playSound(player.getLocation(), "minecraft:entity.ender_dragon.growl", 1.0f, 1.0f); // Dragon scream sound
-                    }
+                        player.playSound(player, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);                    }
                 }
             }, 20L * i);
         }

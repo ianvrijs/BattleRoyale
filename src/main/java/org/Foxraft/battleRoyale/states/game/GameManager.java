@@ -24,6 +24,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Scoreboard;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -185,7 +186,6 @@ public class GameManager implements Listener {
     private void startDeathmatchState() {
         setState(GameState.DEATHMATCH);
         gulagManager.clearGulag();
-        // Flicker border color (if needed)
         // TODO: Implement border color flicker logic
     }
 
@@ -196,15 +196,16 @@ public class GameManager implements Listener {
         // Start timer for new state
         timerManager.startTimer(getCurrentState());
 
-        String message = ChatColor.GREEN + "The game state has changed to: " + newState;
-        for (Team team : teamManager.getTeams().values()) {
-            for (String playerName : team.getPlayers()) {
-                Player player = Bukkit.getPlayer(playerName);
-                if (player != null) {
-                    player.sendMessage(message);
-                }
-            }
-        }
+        String message = switch (newState) {
+            case STARTING -> ChatColor.GREEN + "⚔ Prepare for battle! The game is starting...";
+            case GRACE -> ChatColor.YELLOW + "☮ Grace period has begun! Gather resources and prepare your strategy.";
+            case STORM -> ChatColor.RED + "⚡ The storm is approaching! PvP has been enabled!";
+            case DEATHMATCH -> ChatColor.GOLD + "☠ Final showdown! May the best team win!";
+            case LOBBY -> ChatColor.AQUA + "✦ Game ended - returning to lobby.";
+            default -> ChatColor.GREEN + "Game state: " + newState;
+        };
+
+        Bukkit.broadcastMessage(message);
         if (newState == GameState.STORM) {
             Bukkit.getPluginManager().registerEvents(teamDamageListener, plugin);
         } else if (newState == GameState.LOBBY) {
@@ -298,5 +299,13 @@ public class GameManager implements Listener {
             }
             setState(GameState.LOBBY);
         }, 100L); // 5-second delay
+    }
+
+    public GameState getState() {
+        return currentState;
+    }
+
+    public TeamManager getTeamManager() {
+        return teamManager;
     }
 }

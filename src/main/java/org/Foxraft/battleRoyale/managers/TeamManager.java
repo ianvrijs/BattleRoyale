@@ -1,6 +1,8 @@
 package org.Foxraft.battleRoyale.managers;
 
 import org.Foxraft.battleRoyale.models.Team;
+import org.Foxraft.battleRoyale.states.player.PlayerManager;
+import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -24,8 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TeamManager {
     private final Map<String, Team> teams = new ConcurrentHashMap<>();
     private final File teamsFile;
-    public TeamManager(JavaPlugin plugin) {
+    private final PlayerManager playerManager;
+
+    public TeamManager(JavaPlugin plugin, PlayerManager playerManager) {
         this.teamsFile = new File(plugin.getDataFolder(), "teams.yml");
+        this.playerManager = playerManager;
         loadTeams();
     }
 
@@ -162,5 +167,31 @@ public class TeamManager {
             }
         }
         return null;
+    }
+
+    public Team getTeam(Player player) {
+        for (Team team : teams.values()) {
+            if (team.getPlayers().contains(player.getName())) {
+                return team;
+            }
+        }
+        return null;
+    }
+
+    public boolean isTeamEliminated(String id) {
+        Team team = teams.get(id);
+        if (team == null) {
+            return true;
+        }
+
+        for (String playerName : team.getPlayers()) {
+            Player player = Bukkit.getPlayer(playerName);
+            if (player != null &&
+                    (playerManager.getPlayerState(player) == PlayerState.ALIVE ||
+                            playerManager.getPlayerState(player) == PlayerState.GULAG)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
