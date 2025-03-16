@@ -33,13 +33,11 @@ public class StormManager {
         worldBorder.setSize(finalRadius * 2, (long) shrinkDuration);
 
         startStormShrinking(worldBorder);
-
-        Bukkit.getLogger().info("Storm started: shrinking from " + mapRadius + " to " + finalRadius + " over " + shrinkDuration + " seconds.");
     }
 
     public void stopStorm() {
         WorldBorder worldBorder = Objects.requireNonNull(Bukkit.getWorld("world")).getWorldBorder();
-        worldBorder.setSize(mapRadius * 2); // reset to initial size
+        worldBorder.setSize(mapRadius * 2);
         if (damageTask != null) {
             damageTask.cancel();
             Bukkit.getLogger().info("Storm task got manually cancelled.");
@@ -50,7 +48,7 @@ public class StormManager {
         damageTask = new BukkitRunnable() {
             @Override
             public void run() {
-                double finalRadius = 25; // death match area
+                double finalRadius = 50; // death match area
 
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!worldBorder.isInside(player.getLocation())) {
@@ -65,7 +63,6 @@ public class StormManager {
                 if (worldBorder.getSize() <= finalRadius * 2) {
                     Bukkit.getPluginManager().callEvent(new StormReachedFinalDestinationEvent());
                     this.cancel();
-                    Bukkit.getLogger().info("Storm task reached final destination and got cancelled.");
                 }
             }
         };
@@ -74,5 +71,9 @@ public class StormManager {
     public void resetBorder(){
         WorldBorder worldBorder = Objects.requireNonNull(Bukkit.getWorld("world")).getWorldBorder();
         worldBorder.setSize(mapRadius * 2);
+    }
+
+    public int calculateStormDuration() {
+        return (int) ((mapRadius - 50) / stormSpeed);
     }
 }

@@ -1,5 +1,7 @@
 package org.Foxraft.battleRoyale.listeners;
 
+import org.Foxraft.battleRoyale.managers.DeathMessageManager;
+import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -22,17 +24,21 @@ public class PlayerDeathListener implements Listener {
     private final PlayerManager playerManager;
     private final GameManager gameManager;
     private final JavaPlugin plugin;
+    private final DeathMessageManager deathMessageManager;
 
-    public PlayerDeathListener(GulagManager gulagManager, PlayerManager playerManager, GameManager gameManager, JavaPlugin plugin) {
+
+    public PlayerDeathListener(GulagManager gulagManager, PlayerManager playerManager, GameManager gameManager, JavaPlugin plugin, DeathMessageManager deathMessageManager) {
         this.gulagManager = gulagManager;
         this.playerManager = playerManager;
         this.gameManager = gameManager;
         this.plugin = plugin;
+        this.deathMessageManager = deathMessageManager;
     }
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
+        Team team = gameManager.getTeamManager().getTeam(player);
 
         event.setKeepInventory(false);
         event.setKeepLevel(true);
@@ -61,8 +67,12 @@ public class PlayerDeathListener implements Listener {
                     eliminatePlayer(player); // deathmatch or lobby
                     break;
             }
+            if (team != null && gameManager.getTeamManager().isTeamEliminated(team.getId())) {
+                Bukkit.broadcastMessage(deathMessageManager.getTeamEliminatedMessage(team.getName()));
+            }
             playerManager.updatePlayerState(player, gameState);
-        }, 1L); // 1 tick delay for force respawn
+            gameManager.checkForWinningTeam();
+        }, 1L);
     }
 
     private void respawnAtZeroZero(Player player) {

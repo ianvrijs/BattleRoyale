@@ -37,6 +37,7 @@ public class CommandTabCompleter implements TabCompleter {
                 teamCommands.add("invite");
                 teamCommands.add("accept");
                 teamCommands.add("leave");
+                teamCommands.add("list");
             }
             if (sender.hasPermission("br.admin")) {
                 teamCommands.addAll(Arrays.asList("create", "add", "remove"));

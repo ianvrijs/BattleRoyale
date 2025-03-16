@@ -5,6 +5,7 @@ import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -30,20 +31,25 @@ public class StartUtils {
     public void teleportTeamsToSpawnLocations() {
         int index = 0;
         for (Team team : teamManager.getTeams().values()) {
-            Location spawnLocation = spawnLocations.get(index++);
-            Bukkit.getLogger().info("Teleporting team " + team.getName() + " to location: " + spawnLocation);
-            for (String playerName : team.getPlayers()) {
-                Player player = Bukkit.getPlayer(playerName);
-                if (player != null) {
-                    Bukkit.getLogger().info("Teleporting player " + playerName + " to location: " + spawnLocation);
-                    player.teleport(spawnLocation);
-                } else {
-                    Bukkit.getLogger().warning("Player " + playerName + " is not online and cannot be teleported.");
+            if (index <= spawnLocations.size()) {
+                Location spawnLocation = spawnLocations.get(index++);
+                Bukkit.getLogger().info("Teleporting team " + team.getName() + " to location: " + spawnLocation);
+                for (String playerName : team.getPlayers()) {
+                    Player player = Bukkit.getPlayer(playerName);
+                    if (player != null) {
+                        Bukkit.getLogger().info("Teleporting player " + playerName + " to location: " + spawnLocation);
+                        player.teleport(spawnLocation);
+                    } else {
+                        Bukkit.getLogger().warning("Player " + playerName + " is not online and cannot be teleported.");
+                    }
                 }
+            } else {
+                Bukkit.getLogger().warning("Not enough spawn locations for all teams.");
+                break;
             }
         }
     }
-
+    //TODO optimize this method
     private List<Location> generateSpawnLocations(int mapRadius, int teamCount) {
         List<Location> locations = new ArrayList<>();
         double angleIncrement = 2 * Math.PI / teamCount;
@@ -69,11 +75,10 @@ public class StartUtils {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (count > 0) {
                         player.sendTitle(ChatColor.YELLOW + "Game starts in", ChatColor.RED + String.valueOf(count), 10, 20, 10);
-                        player.playSound(player.getLocation(), "minecraft:block.note_block.pling", 1.0f, 1.0f); // Ding sound
+                        player.playSound(player.getLocation(), "minecraft:block.note_block.pling", 1.0f, 1.0f);
                     } else {
                         player.sendTitle(ChatColor.GREEN + "Good luck!", "", 10, 20, 10);
-                        player.playSound(player.getLocation(), "minecraft:entity.ender_dragon.growl", 1.0f, 1.0f); // Dragon scream sound
-                    }
+                        player.playSound(player, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);                    }
                 }
             }, 20L * i);
         }

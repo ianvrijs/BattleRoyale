@@ -1,13 +1,19 @@
 // GulagManager.java
 package org.Foxraft.battleRoyale.states.gulag;
 
+import org.Foxraft.battleRoyale.managers.TeamManager;
+import org.Foxraft.battleRoyale.models.Team;
+import org.Foxraft.battleRoyale.states.game.GameManager;
+import org.Foxraft.battleRoyale.states.game.GameState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.Foxraft.battleRoyale.listeners.PlayerMoveListener;
@@ -15,6 +21,7 @@ import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 
@@ -25,13 +32,15 @@ public class GulagManager {
     private final Location lobbyLocation;
     private final Location defaultRespawnLocation;
     private final Queue<Player> gulagQueue = new LinkedList<>();
+    private final TeamManager teamManager;
+    private GameManager gameManager;
     private GulagState gulagState = GulagState.IDLE;
     private final int eliminationYLevel;
     private final JavaPlugin plugin;
     private PlayerMoveListener playerMoveListener;
     private boolean countdownActive = false;
 
-    public GulagManager(PlayerManager playerManager, JavaPlugin plugin) {
+    public GulagManager(PlayerManager playerManager, JavaPlugin plugin, TeamManager teamManager) {
         this.playerManager = playerManager;
         this.plugin = plugin;
         this.gulagLocation1 = getLocationFromConfig(plugin, "gulag1", null);
@@ -39,6 +48,10 @@ public class GulagManager {
         this.lobbyLocation = getLocationFromConfig(plugin, "lobby", null);
         this.defaultRespawnLocation = new Location(Bukkit.getWorld("world"), 0, Objects.requireNonNull(Bukkit.getWorld("world")).getHighestBlockYAt(0, 0) + 2, 0);
         this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0); // Updated key
+        this.teamManager = teamManager;
+    }
+    public void setGameManager(GameManager gameManager) {
+        this.gameManager = gameManager;
     }
 
     private Location getLocationFromConfig(JavaPlugin plugin, String path, Location defaultLocation) {
@@ -55,10 +68,46 @@ public class GulagManager {
     }
 
     public void enlistInGulag(Player player) {
+        // Don't enlist if player is already in gulag
         if (playerManager.getPlayerState(player) == PlayerState.GULAG) {
-            return; // Player is already in the Gulag
+            return;
         }
 
+        // Don't enlist if player was already resurrected
+        if (playerManager.getPlayerState(player) == PlayerState.RESURRECTED) {
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.teleport(lobbyLocation);
+            return;
+        }
+
+        // Get game state from game manager
+        GameState currentState = gameManager.getCurrentState();
+        if (currentState != GameState.STORM) {
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.teleport(lobbyLocation);
+            return;
+        }
+
+        // Count alive players
+        int alivePlayers = 0;
+        for (Team team : teamManager.getTeams().values()) {
+            for (String playerName : team.getPlayers()) {
+                Player p = Bukkit.getPlayer(playerName);
+                if (p != null && (playerManager.getPlayerState(p) == PlayerState.ALIVE
+                        || playerManager.getPlayerState(p) == PlayerState.GULAG)) {
+                    alivePlayers++;
+                }
+            }
+        }
+
+        // If 3 or fewer players are alive, don't enlist in gulag
+        if (alivePlayers <= 3) {
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.teleport(lobbyLocation);
+            return;
+        }
+
+        // Normal gulag enlistment logic
         playerManager.setPlayerState(player, PlayerState.GULAG);
         playerManager.setEnteredGulag(player, true);
         gulagQueue.add(player);
@@ -72,6 +121,7 @@ public class GulagManager {
             player.teleport(lobbyLocation);
             player.sendMessage(ChatColor.RED + "Sumo is full. Please wait for the next match.");
         }
+
         if (gulagQueue.size() == 1 || gulagQueue.size() == 2) {
             Player player1 = gulagQueue.peek();
             Player player2 = gulagQueue.size() > 1 ? ((LinkedList<Player>) gulagQueue).get(1) : null;
@@ -86,29 +136,28 @@ public class GulagManager {
         Player player2 = gulagQueue.size() > 1 ? ((LinkedList<Player>) gulagQueue).get(1) : null;
 
         if (player1 != null && player2 != null) {
-            Bukkit.broadcastMessage(ChatColor.GOLD + player1.getName() + ChatColor.GREEN +" will be fighting against " + ChatColor.GOLD +player2.getName() + ChatColor.GREEN+" in the Ring of Redemption!");
+            Bukkit.broadcastMessage(ChatColor.GOLD + player1.getName() + ChatColor.GREEN + " will be fighting against " + ChatColor.GOLD + player2.getName() + ChatColor.GREEN + " in the Ring of Redemption!");
 
             new BukkitRunnable() {
-                int countdown = 3;
+                int countdown = 5;
 
                 @Override
                 public void run() {
                     if (countdown > 0) {
-                        for (Player player : gulagQueue) {
-                            player.sendTitle(ChatColor.YELLOW + "Sumo starting in", ChatColor.RED + String.valueOf(countdown), 10, 20, 10);
-                        }
+                        player1.sendTitle(ChatColor.YELLOW + "Sumo starting in", ChatColor.RED + String.valueOf(countdown), 10, 20, 10);
+                        player2.sendTitle(ChatColor.YELLOW + "Sumo starting in", ChatColor.RED + String.valueOf(countdown), 10, 20, 10);
                         countdown--;
                     } else {
-                        for (Player player : gulagQueue) {
-                            player.sendTitle(ChatColor.RED + "Fight!", "", 10, 20, 10);
-                            player.playSound(player.getLocation(), "minecraft:entity.ender_dragon.growl", 1.0f, 1.0f);
-                        }
+                        player1.sendTitle(ChatColor.RED + "Fight!", "", 10, 20, 10);
+                        player2.sendTitle(ChatColor.RED + "Fight!", "", 10, 20, 10);
+                        player1.playSound(player1.getLocation(), "minecraft:entity.ender_dragon.growl", 1.0f, 1.0f);
+                        player2.playSound(player2.getLocation(), "minecraft:entity.ender_dragon.growl", 1.0f, 1.0f);
                         countdownActive = false;
                         startGulag();
                         cancel();
                     }
                 }
-            }.runTaskTimer(plugin, 0L, 20L); // Run every second (20 ticks)
+            }.runTaskTimer(plugin, 0L, 20L);
         }
     }
 
@@ -122,34 +171,30 @@ public class GulagManager {
         if (winner == null) {
             return;
         }
+//        unregisterPlayerMoveListener();
         winner.sendMessage(ChatColor.GREEN + "You've redeemed yourself! You get one final chance.");
         Bukkit.broadcastMessage(ChatColor.GOLD + winner.getName() + ChatColor.GOLD + " has won the sumo! " + ChatColor.GOLD + "⚔");
         playerManager.setPlayerState(winner, PlayerState.RESURRECTED);
-
-        // Teleport the winner immediately
-        winner.teleport(defaultRespawnLocation);
-
-        // Give the golden armor kit after a short delay
         new BukkitRunnable() {
             @Override
             public void run() {
+                checkAndStartNewGulagMatch();
                 giveGoldenArmorKit(winner);
                 gulagState = GulagState.IDLE;
-                checkAndStartNewGulagMatch();
+                winner.teleport(defaultRespawnLocation);
             }
-        }.runTaskLater(plugin, 20L); // 1 second delay
+        }.runTaskLater(plugin, 100L); // 5s
     }
 
     public void handleGulagLoss(Player loser) {
         if (loser == null) {
             return;
         }
-        //TODO fix this getting called twice
         playerManager.setPlayerState(loser, PlayerState.DEAD);
         new BukkitRunnable() {
             @Override
             public void run() {
-                loser.sendMessage(ChatColor.RED + "You've been eliminated.");
+                loser.sendMessage(ChatColor.RED + "You've been eliminated..");
                 loser.teleport(lobbyLocation);
                 loser.getInventory().clear();
                 loser.setHealth(20);
@@ -157,13 +202,12 @@ public class GulagManager {
                 gulagState = GulagState.IDLE;
                 checkAndStartNewGulagMatch();
             }
-        }.runTaskLater(plugin, 5L); //5 tick delay
+        }.runTaskLater(plugin, 1L); //1s
     }
 
     public void unregisterPlayerMoveListener() {
-        Bukkit.getLogger().info("Unregistering PlayerMoveListener");
         if (playerMoveListener != null) {
-            PlayerMoveEvent.getHandlerList().unregister(playerMoveListener);
+            HandlerList.unregisterAll(playerMoveListener);
             playerMoveListener = null;
         }
     }
@@ -192,6 +236,7 @@ public class GulagManager {
         return eliminationYLevel;
     }
     private void checkAndStartNewGulagMatch() {
+        unregisterPlayerMoveListener();
         if (gulagQueue.size() >= 2) {
             startGulagCountdown();
         }
@@ -209,5 +254,61 @@ public class GulagManager {
             }
             unregisterPlayerMoveListener();
         }
+    }
+    public Plugin getPlugin() {
+        return plugin;
+    }
+    public void clearGulag() {
+        if (playerMoveListener != null) {
+            unregisterPlayerMoveListener();
+        }
+
+        for (Player player : gulagQueue) {
+            player.teleport(getLobbyLocation());
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.sendMessage(ChatColor.RED + "Sumo has been cancelled. You've been eliminated.");
+        }
+        //check for game end
+
+        gulagQueue.clear();
+        gulagState = GulagState.IDLE;
+        countdownActive = false;
+    }
+    public void processGulagResult(Player winner, Player loser) {
+        if (winner == null || !winner.isOnline() || loser == null || !loser.isOnline()) {
+            gulagState = GulagState.IDLE;
+            return;
+        }
+
+        if (playerMoveListener != null) {
+            HandlerList.unregisterAll(playerMoveListener);
+            playerMoveListener = null;
+        }
+
+        loser.teleport(lobbyLocation);
+        playerManager.setPlayerState(loser, PlayerState.DEAD);
+        loser.sendMessage(ChatColor.RED + "You've been eliminated from the Sumo!");
+        loser.getInventory().clear();
+
+        winner.sendMessage(ChatColor.GREEN + "You've redeemed yourself! You get one final chance.");
+        Bukkit.broadcastMessage(ChatColor.GOLD + winner.getName() + ChatColor.GOLD + " has won the sumo! " + ChatColor.GOLD + "⚔");
+        playerManager.setPlayerState(winner, PlayerState.RESURRECTED);
+
+        final Player finalWinner = winner;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (finalWinner.isOnline()) {
+                    finalWinner.teleport(defaultRespawnLocation);
+                    giveGoldenArmorKit(finalWinner);
+                }
+                gulagState = GulagState.IDLE;
+                checkAndStartNewGulagMatch();
+            }
+        }.runTaskLater(plugin, 100L);
+    }
+
+    public List<Player> getGulagQueue() {
+        return new LinkedList<>(gulagQueue);
     }
 }
