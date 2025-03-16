@@ -6,8 +6,10 @@ import org.Foxraft.battleRoyale.listeners.TeamDamageListener;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.managers.StormManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
+import org.Foxraft.battleRoyale.managers.TimerManager;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
+import org.Foxraft.battleRoyale.states.gulag.GulagState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.Foxraft.battleRoyale.utils.StartUtils;
@@ -40,9 +42,10 @@ public class GameManager implements Listener {
     private final GulagManager gulagManager;
     private GameState currentState = GameState.LOBBY;
     private final StormManager stormManager;
+    private final TimerManager timerManager;
     private int gracePeriodTaskId = -1;
 
-    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager) {
+    public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.teamManager = teamManager;
@@ -50,6 +53,7 @@ public class GameManager implements Listener {
         this.teamDamageListener = teamDamageListener;
         this.stormManager = stormManager;
         this.gulagManager = gulagManager;
+        this.timerManager = timerManager;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
     @EventHandler
@@ -125,6 +129,9 @@ public class GameManager implements Listener {
         }
         setState(GameState.LOBBY);
         stormManager.stopStorm();
+        timerManager.stop();
+        gulagManager.clearGulag();
+
         Location lobbyLocation = getLobbyLocation();
         // TODO: Unregister gulag listener
         for (Team team : teamManager.getTeams().values()) {
@@ -186,6 +193,9 @@ public class GameManager implements Listener {
         this.currentState = newState;
         Bukkit.getLogger().info("Game state changed to: " + newState);
 
+        // Start timer for new state
+        timerManager.startTimer(getCurrentState());
+
         String message = ChatColor.GREEN + "The game state has changed to: " + newState;
         for (Team team : teamManager.getTeams().values()) {
             for (String playerName : team.getPlayers()) {
@@ -212,5 +222,81 @@ public class GameManager implements Listener {
         double y = plugin.getConfig().getDouble("lobby.y", 64);
         double z = plugin.getConfig().getDouble("lobby.z", 0);
         return new Location(Bukkit.getWorld(worldName), x, y, z);
+    }
+    public void checkForWinningTeam() {
+        // Wait 1 tick to ensure the gulag queue is updated
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            List<Team> teamsWithPotential = new ArrayList<>();
+
+            // Check each team for alive or gulag players
+            for (Team team : teamManager.getTeams().values()) {
+                boolean hasAliveOrGulagPlayer = false;
+                for (String playerName : team.getPlayers()) {
+                    Player player = Bukkit.getPlayer(playerName);
+                    if (player != null) {
+                        PlayerState state = playerManager.getPlayerState(player);
+                        if (state == PlayerState.ALIVE || state == PlayerState.GULAG) {
+                            hasAliveOrGulagPlayer = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasAliveOrGulagPlayer) {
+                    teamsWithPotential.add(team);
+                }
+            }
+
+            // End game conditions
+            if (teamsWithPotential.size() == 1) {
+                Team lastTeam = teamsWithPotential.get(0);
+
+                switch (currentState) {
+                    case STORM:
+                        if ((gulagManager.getGulagQueue().size() <= 1) &&
+                                gulagManager.getGulagState() == GulagState.IDLE) {
+                            endGame(lastTeam);
+                        }
+                        break;
+                    case DEATHMATCH:
+                        endGame(lastTeam);
+                        break;
+                }
+            }
+        }, 1L);
+    }
+
+    private void endGame(Team winningTeam) {
+        stormManager.stopStorm();
+        timerManager.stop();
+        gulagManager.clearGulag();
+
+        StringBuilder winners = new StringBuilder();
+        for (String playerName : winningTeam.getPlayers()) {
+            if (!winners.isEmpty()) {
+                winners.append(" and ");
+            }
+            winners.append(playerName);
+        }
+
+        Bukkit.broadcastMessage(ChatColor.GOLD + "=============================");
+        Bukkit.broadcastMessage(ChatColor.GOLD + "           VICTORY ROYALE!");
+        Bukkit.broadcastMessage(ChatColor.YELLOW + "Winners: " + ChatColor.GREEN + winners);
+        Bukkit.broadcastMessage(ChatColor.GOLD + "=============================");
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.playSound(player.getLocation(), "entity.ender_dragon.death", 1.0f, 1.0f);
+        }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Location lobbyLocation = getLobbyLocation();
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.teleport(lobbyLocation);
+                player.getInventory().clear();
+                player.setHealth(20);
+                player.setFoodLevel(20);
+                playerManager.setPlayerState(player, PlayerState.LOBBY);
+            }
+            setState(GameState.LOBBY);
+        }, 100L); // 5-second delay
     }
 }

@@ -1,6 +1,10 @@
 // GulagManager.java
 package org.Foxraft.battleRoyale.states.gulag;
 
+import org.Foxraft.battleRoyale.managers.TeamManager;
+import org.Foxraft.battleRoyale.models.Team;
+import org.Foxraft.battleRoyale.states.game.GameManager;
+import org.Foxraft.battleRoyale.states.game.GameState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -28,13 +32,15 @@ public class GulagManager {
     private final Location lobbyLocation;
     private final Location defaultRespawnLocation;
     private final Queue<Player> gulagQueue = new LinkedList<>();
+    private final TeamManager teamManager;
+    private GameManager gameManager;
     private GulagState gulagState = GulagState.IDLE;
     private final int eliminationYLevel;
     private final JavaPlugin plugin;
     private PlayerMoveListener playerMoveListener;
     private boolean countdownActive = false;
 
-    public GulagManager(PlayerManager playerManager, JavaPlugin plugin) {
+    public GulagManager(PlayerManager playerManager, JavaPlugin plugin, TeamManager teamManager) {
         this.playerManager = playerManager;
         this.plugin = plugin;
         this.gulagLocation1 = getLocationFromConfig(plugin, "gulag1", null);
@@ -42,6 +48,10 @@ public class GulagManager {
         this.lobbyLocation = getLocationFromConfig(plugin, "lobby", null);
         this.defaultRespawnLocation = new Location(Bukkit.getWorld("world"), 0, Objects.requireNonNull(Bukkit.getWorld("world")).getHighestBlockYAt(0, 0) + 2, 0);
         this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0); // Updated key
+        this.teamManager = teamManager;
+    }
+    public void setGameManager(GameManager gameManager) {
+        this.gameManager = gameManager;
     }
 
     private Location getLocationFromConfig(JavaPlugin plugin, String path, Location defaultLocation) {
@@ -58,10 +68,46 @@ public class GulagManager {
     }
 
     public void enlistInGulag(Player player) {
+        // Don't enlist if player is already in gulag
         if (playerManager.getPlayerState(player) == PlayerState.GULAG) {
-            return; // Player is already in the Gulag
+            return;
         }
 
+        // Don't enlist if player was already resurrected
+        if (playerManager.getPlayerState(player) == PlayerState.RESURRECTED) {
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.teleport(lobbyLocation);
+            return;
+        }
+
+        // Get game state from game manager
+        GameState currentState = gameManager.getCurrentState();
+        if (currentState != GameState.STORM) {
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.teleport(lobbyLocation);
+            return;
+        }
+
+        // Count alive players
+        int alivePlayers = 0;
+        for (Team team : teamManager.getTeams().values()) {
+            for (String playerName : team.getPlayers()) {
+                Player p = Bukkit.getPlayer(playerName);
+                if (p != null && (playerManager.getPlayerState(p) == PlayerState.ALIVE
+                        || playerManager.getPlayerState(p) == PlayerState.GULAG)) {
+                    alivePlayers++;
+                }
+            }
+        }
+
+        // If 3 or fewer players are alive, don't enlist in gulag
+        if (alivePlayers <= 3) {
+            playerManager.setPlayerState(player, PlayerState.DEAD);
+            player.teleport(lobbyLocation);
+            return;
+        }
+
+        // Normal gulag enlistment logic
         playerManager.setPlayerState(player, PlayerState.GULAG);
         playerManager.setEnteredGulag(player, true);
         gulagQueue.add(player);
@@ -75,6 +121,7 @@ public class GulagManager {
             player.teleport(lobbyLocation);
             player.sendMessage(ChatColor.RED + "Sumo is full. Please wait for the next match.");
         }
+
         if (gulagQueue.size() == 1 || gulagQueue.size() == 2) {
             Player player1 = gulagQueue.peek();
             Player player2 = gulagQueue.size() > 1 ? ((LinkedList<Player>) gulagQueue).get(1) : null;
@@ -221,6 +268,8 @@ public class GulagManager {
             playerManager.setPlayerState(player, PlayerState.DEAD);
             player.sendMessage(ChatColor.RED + "Sumo has been cancelled. You've been eliminated.");
         }
+        //check for game end
+
         gulagQueue.clear();
         gulagState = GulagState.IDLE;
         countdownActive = false;
@@ -257,5 +306,9 @@ public class GulagManager {
                 checkAndStartNewGulagMatch();
             }
         }.runTaskLater(plugin, 100L);
+    }
+
+    public List<Player> getGulagQueue() {
+        return new LinkedList<>(gulagQueue);
     }
 }

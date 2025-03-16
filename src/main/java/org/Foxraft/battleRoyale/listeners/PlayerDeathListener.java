@@ -62,7 +62,8 @@ public class PlayerDeathListener implements Listener {
                     break;
             }
             playerManager.updatePlayerState(player, gameState);
-        }, 1L); // 1 tick delay for force respawn
+            gameManager.checkForWinningTeam();
+        }, 1L);
     }
 
     private void respawnAtZeroZero(Player player) {

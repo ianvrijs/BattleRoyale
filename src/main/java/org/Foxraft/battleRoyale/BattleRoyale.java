@@ -3,10 +3,7 @@ package org.Foxraft.battleRoyale;
 import org.Foxraft.battleRoyale.listeners.PlayerDeathListener;
 import org.Foxraft.battleRoyale.listeners.PlayerQuitListener;
 import org.Foxraft.battleRoyale.listeners.TeamDamageListener;
-import org.Foxraft.battleRoyale.managers.InviteManager;
-import org.Foxraft.battleRoyale.managers.SetupManager;
-import org.Foxraft.battleRoyale.managers.StormManager;
-import org.Foxraft.battleRoyale.managers.TeamManager;
+import org.Foxraft.battleRoyale.managers.*;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.gulag.GulagManager;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
@@ -26,12 +23,13 @@ public final class BattleRoyale extends JavaPlugin {
         TeamManager teamManager = new TeamManager(this);
         TeamDamageListener teamDamageListener = new TeamDamageListener(teamManager, playerManager);
         StartUtils startUtils = new StartUtils(this, teamManager);
-        GulagManager gulagManager = new GulagManager(playerManager, this);
+        GulagManager gulagManager = new GulagManager(playerManager, this, teamManager);
         InviteManager inviteManager = new InviteManager(this, teamManager);
         SetupManager setupManager = new SetupManager(this);
         StormManager stormManager = new StormManager(this);
-        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils, teamDamageListener, stormManager, gulagManager);
-
+        TimerManager timerManager = new TimerManager(this, stormManager);
+        GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils, teamDamageListener, stormManager, gulagManager, timerManager);
+        gulagManager.setGameManager(gameManager);
         CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager);
         Objects.requireNonNull(getCommand("br")).setExecutor(commandHandler);
         Objects.requireNonNull(getCommand("br")).setTabCompleter(new CommandTabCompleter());

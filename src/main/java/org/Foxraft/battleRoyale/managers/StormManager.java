@@ -72,4 +72,8 @@ public class StormManager {
         WorldBorder worldBorder = Objects.requireNonNull(Bukkit.getWorld("world")).getWorldBorder();
         worldBorder.setSize(mapRadius * 2);
     }
+
+    public int calculateStormDuration() {
+        return (int) ((mapRadius - 50) / stormSpeed);
+    }
 }
