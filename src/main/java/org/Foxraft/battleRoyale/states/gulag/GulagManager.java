@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.Foxraft.battleRoyale.listeners.PlayerMoveListener;
@@ -89,7 +90,7 @@ public class GulagManager {
             Bukkit.broadcastMessage(ChatColor.GOLD + player1.getName() + ChatColor.GREEN +" will be fighting against " + ChatColor.GOLD +player2.getName() + ChatColor.GREEN+" in the Ring of Redemption!");
 
             new BukkitRunnable() {
-                int countdown = 3;
+                int countdown = 5;
 
                 @Override
                 public void run() {
@@ -122,34 +123,30 @@ public class GulagManager {
         if (winner == null) {
             return;
         }
+        unregisterPlayerMoveListener();
         winner.sendMessage(ChatColor.GREEN + "You've redeemed yourself! You get one final chance.");
         Bukkit.broadcastMessage(ChatColor.GOLD + winner.getName() + ChatColor.GOLD + " has won the sumo! " + ChatColor.GOLD + "⚔");
         playerManager.setPlayerState(winner, PlayerState.RESURRECTED);
-
-        // Teleport the winner immediately
-        winner.teleport(defaultRespawnLocation);
-
-        // Give the golden armor kit after a short delay
         new BukkitRunnable() {
             @Override
             public void run() {
+                winner.teleport(defaultRespawnLocation);
                 giveGoldenArmorKit(winner);
                 gulagState = GulagState.IDLE;
                 checkAndStartNewGulagMatch();
             }
-        }.runTaskLater(plugin, 20L); // 1 second delay
+        }.runTaskLater(plugin, 100L); // 5s
     }
 
     public void handleGulagLoss(Player loser) {
         if (loser == null) {
             return;
         }
-        //TODO fix this getting called twice
         playerManager.setPlayerState(loser, PlayerState.DEAD);
         new BukkitRunnable() {
             @Override
             public void run() {
-                loser.sendMessage(ChatColor.RED + "You've been eliminated.");
+                loser.sendMessage(ChatColor.RED + "You've been eliminated..");
                 loser.teleport(lobbyLocation);
                 loser.getInventory().clear();
                 loser.setHealth(20);
@@ -157,15 +154,13 @@ public class GulagManager {
                 gulagState = GulagState.IDLE;
                 checkAndStartNewGulagMatch();
             }
-        }.runTaskLater(plugin, 5L); //5 tick delay
+        }.runTaskLater(plugin, 1L); //1s
     }
 
     public void unregisterPlayerMoveListener() {
         Bukkit.getLogger().info("Unregistering PlayerMoveListener");
-        if (playerMoveListener != null) {
-            PlayerMoveEvent.getHandlerList().unregister(playerMoveListener);
-            playerMoveListener = null;
-        }
+        PlayerMoveEvent.getHandlerList().unregister(playerMoveListener);
+
     }
 
     private void giveGoldenArmorKit(Player player) {
@@ -209,5 +204,9 @@ public class GulagManager {
             }
             unregisterPlayerMoveListener();
         }
+    }
+
+    public Plugin getPlugin() {
+        return plugin;
     }
 }

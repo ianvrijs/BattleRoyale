@@ -24,7 +24,7 @@ public final class BattleRoyale extends JavaPlugin {
     public void onEnable() {
         PlayerManager playerManager = new PlayerManager();
         TeamManager teamManager = new TeamManager(this);
-        TeamDamageListener teamDamageListener = new TeamDamageListener(teamManager);
+        TeamDamageListener teamDamageListener = new TeamDamageListener(teamManager, playerManager);
         StartUtils startUtils = new StartUtils(this, teamManager);
         GulagManager gulagManager = new GulagManager(playerManager, this);
         InviteManager inviteManager = new InviteManager(this, teamManager);

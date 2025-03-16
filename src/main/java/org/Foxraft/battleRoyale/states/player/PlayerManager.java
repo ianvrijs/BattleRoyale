@@ -3,7 +3,6 @@ package org.Foxraft.battleRoyale.states.player;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.states.game.GameState;
-import org.Foxraft.battleRoyale.states.gulag.GulagManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,37 +42,23 @@ public class PlayerManager {
     }
 
     public void updatePlayerState(Player player, GameState gameState) {
-        switch (gameState) {
-            case LOBBY:
-                setPlayerState(player, PlayerState.LOBBY);
-                break;
-            case GRACE:
-            case STORM:
-            case DEATHMATCH:
-                if (hasEnteredGulag(player)) {
-                    setPlayerState(player, PlayerState.GULAG);
-                } else if (getPlayerState(player) == PlayerState.RESURRECTED) {
-                    setPlayerState(player, PlayerState.RESURRECTED);
-                } else if (getPlayerState(player) == PlayerState.DEAD) {
-                    setPlayerState(player, PlayerState.DEAD);
-                } else {
-                    setPlayerState(player, PlayerState.ALIVE);
-                }
-                break;
+        if (gameState == GameState.LOBBY) {
+            setPlayerState(player, PlayerState.LOBBY);
+            return;
         }
-    }
 
-    public void handlePlayerDeath(Player player, GameState gameState, GulagManager gulagManager) {
-        if (gameState == GameState.STORM) {
-            if (hasEnteredGulag(player)) {
-                setPlayerState(player, PlayerState.DEAD);
-                player.teleport(gulagManager.getLobbyLocation());
-            } else {
-                gulagManager.enlistInGulag(player);
-            }
+        PlayerState currentState = getPlayerState(player);
+
+        if (currentState == PlayerState.GULAG || currentState == PlayerState.RESURRECTED) {
+            return;
+        }
+
+        if (hasEnteredGulag(player)) {
+            setPlayerState(player, PlayerState.GULAG);
+        } else if (currentState == PlayerState.DEAD) {
+            setPlayerState(player, currentState);
         } else {
-            setPlayerState(player, PlayerState.DEAD);
-            player.teleport(gulagManager.getLobbyLocation());
+            setPlayerState(player, PlayerState.ALIVE);
         }
     }
 }

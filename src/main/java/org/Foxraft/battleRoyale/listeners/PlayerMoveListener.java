@@ -1,6 +1,7 @@
 package org.Foxraft.battleRoyale.listeners;
 
 import org.Foxraft.battleRoyale.states.gulag.GulagState;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,6 +29,7 @@ public class PlayerMoveListener implements Listener {
             return;
         }
 
+        // Prevent moving before sumo starts
         Player player = event.getPlayer();
         if (player.equals(player1) || player.equals(player2)) {
             if (gulagManager.isCountdownActive() || gulagManager.getGulagState() != GulagState.ONGOING) {
@@ -38,7 +40,10 @@ public class PlayerMoveListener implements Listener {
                 }
             }
 
+            // Handle win/loss
             if ((int) player.getLocation().getY() < gulagManager.getEliminationYLevel()) {
+                listenerUnregistered = true;
+                Bukkit.getScheduler().runTask(gulagManager.getPlugin(), gulagManager::unregisterPlayerMoveListener);
                 Player winner;
                 Player loser;
                 if (player.equals(player1)) {
@@ -48,10 +53,10 @@ public class PlayerMoveListener implements Listener {
                     loser = player2;
                     winner = player1;
                 }
-                gulagManager.handleGulagLoss(loser);
-                gulagManager.handleGulagWin(winner);
-                listenerUnregistered = true;
-                gulagManager.unregisterPlayerMoveListener();
+                if (player1 != null && player2 != null) {
+                    gulagManager.handleGulagLoss(loser);
+                    gulagManager.handleGulagWin(winner);
+                }
             }
         }
     }
