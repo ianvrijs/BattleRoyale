@@ -1,5 +1,6 @@
 package org.Foxraft.battleRoyale.managers;
 
+import org.Foxraft.battleRoyale.events.TeamLeaveEvent;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
@@ -35,12 +36,18 @@ public class TeamManager {
     }
 
     public void createTeam(Player player1, Player player2) {
+        Team player1Team = getTeam(player1);
+        if (player1Team != null && player1Team.getPlayers().size() == 1) {
+            removePlayerFromTeam(player1);
+        }
+
         if (isPlayerInAnyTeam(player1) || isPlayerInAnyTeam(player2)) {
             Bukkit.getLogger().warning("One or both players are already in a team.");
             return;
         }
+
         String teamId = String.valueOf(teams.size() + 1);
-        Team team = new Team(teamId, new ArrayList<>(Arrays.asList(player1.getName(), player2.getName()))); // Mutable list
+        Team team = new Team(teamId, new ArrayList<>(Arrays.asList(player1.getName(), player2.getName())));
         teams.put(teamId, team);
         saveTeams();
     }
@@ -75,6 +82,7 @@ public class TeamManager {
                             iterator.remove();
                         }
                         saveTeams();
+                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
                         return;
                     }
                 }

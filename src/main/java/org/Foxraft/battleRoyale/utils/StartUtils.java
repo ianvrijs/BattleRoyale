@@ -2,10 +2,7 @@ package org.Foxraft.battleRoyale.utils;
 
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.models.Team;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -33,14 +30,10 @@ public class StartUtils {
         for (Team team : teamManager.getTeams().values()) {
             if (index <= spawnLocations.size()) {
                 Location spawnLocation = spawnLocations.get(index++);
-                Bukkit.getLogger().info("Teleporting team " + team.getName() + " to location: " + spawnLocation);
                 for (String playerName : team.getPlayers()) {
                     Player player = Bukkit.getPlayer(playerName);
                     if (player != null) {
-                        Bukkit.getLogger().info("Teleporting player " + playerName + " to location: " + spawnLocation);
                         player.teleport(spawnLocation);
-                    } else {
-                        Bukkit.getLogger().warning("Player " + playerName + " is not online and cannot be teleported.");
                     }
                 }
             } else {
@@ -49,25 +42,70 @@ public class StartUtils {
             }
         }
     }
-    //TODO optimize this method
     private List<Location> generateSpawnLocations(int mapRadius, int teamCount) {
-        List<Location> locations = new ArrayList<>();
+        List<Location> locations = new ArrayList<>(teamCount);
+        String worldName = plugin.getConfig().getString("lobby.world", "world");
+        World world = Bukkit.getWorld(worldName);
+
+        if (world == null) {
+            Bukkit.getLogger().severe("Could not find world. Make sure the lobby is set.");
+            return locations;
+        }
+
+        double distance = Math.max(mapRadius * 0.6, mapRadius - 48);
         double angleIncrement = 2 * Math.PI / teamCount;
-        double distance = mapRadius - 48; // Subtract 3 chunks (48 blocks) from the map radius
+        int maxAttempts = 3;
 
         for (int i = 0; i < teamCount; i++) {
-            double angle = i * angleIncrement;
-            double x = distance * Math.cos(angle);
-            double z = distance * Math.sin(angle);
-            Location location = new Location(Bukkit.getWorld("world"), x, 0, z);
-            int highestY = Objects.requireNonNull(location.getWorld()).getHighestBlockYAt(location);
-            Location spawnLocation = new Location(location.getWorld(), x, highestY + 2, z); // Increment Y by 2 to ensure players spawn on top of the block
-            Bukkit.getLogger().info("Generated spawn location for team " + (i + 1) + ": " + spawnLocation + " (highest Y: " + highestY + ")");
-            locations.add(spawnLocation);
+            Location spawnLoc = null;
+            int attempts = 0;
+
+            while (spawnLoc == null && attempts < maxAttempts) {
+                double angle = i * angleIncrement + (attempts * (Math.PI / 8));
+                int x = (int) (distance * Math.cos(angle));
+                int z = (int) (distance * Math.sin(angle));
+
+                Chunk chunk = world.getChunkAt(x >> 4, z >> 4);
+                if (!chunk.isLoaded()) {
+                    chunk.load(true);
+                }
+
+                int highestY = world.getHighestBlockYAt(x, z);
+                Location potential = new Location(world, x, highestY + 1, z);
+
+                if (isSafeLocation(potential)) {
+                    spawnLoc = potential.clone().add(0.5, 1, 0.5);
+                    spawnLoc.setYaw((float) Math.toDegrees(angle) + 90);
+                    break;
+                }
+                attempts++;
+            }
+
+            if (spawnLoc != null) {
+                locations.add(spawnLoc);
+            } else {
+                Bukkit.getLogger().warning("Could not find safe location for team " + (i + 1));
+            }
         }
+
         return locations;
     }
 
+    private boolean isSafeLocation(Location location) {
+        World world = location.getWorld();
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+
+        assert world != null;
+        if (!world.getBlockAt(x, y, z).getType().isAir() ||
+                !world.getBlockAt(x, y + 1, z).getType().isAir()) {
+            return false;
+        }
+
+        Material below = world.getBlockAt(x, y - 1, z).getType();
+        return below.isSolid() && !below.toString().contains("LAVA");
+    }
     public void broadcastCountdown(int seconds) {
         for (int i = 0; i <= seconds; i++) {
             final int count = seconds - i;

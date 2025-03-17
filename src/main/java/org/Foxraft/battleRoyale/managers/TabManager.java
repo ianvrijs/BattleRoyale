@@ -3,6 +3,7 @@ package org.Foxraft.battleRoyale.managers;
 import org.Foxraft.battleRoyale.events.PlayerStateChangeEvent;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.game.GameState;
+import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
