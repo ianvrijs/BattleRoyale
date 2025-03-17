@@ -66,26 +66,7 @@ public class GameManager implements Listener {
             sender.sendMessage(ChatColor.RED + "Game has already been started.");
             return;
         }
-        setState(GameState.STARTING);
-        sender.sendMessage(ChatColor.GREEN + "Generating spawn locations.. this might take a minute.");
-        startUtils.generateSpawnLocationsAndTeleportTeams();
-        startUtils.broadcastCountdown(5);
 
-        int graceTimeMinutes;
-        try {
-            graceTimeMinutes = plugin.getConfig().getInt("graceTime");
-            if (graceTimeMinutes <= 0) {
-                sender.sendMessage(ChatColor.RED + "Grace time must be a positive integer.");
-                return;
-            }
-        } catch (Exception e) {
-            sender.sendMessage(ChatColor.RED + "Invalid graceTime in config: " + e.getMessage());
-            return;
-        }
-
-        final long graceTimeTicks = graceTimeMinutes * 60L * 20L;
-
-        // Automatically create new teams for players without a team
         List<Player> playersWithoutTeam = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!teamManager.isPlayerInAnyTeam(player)) {
@@ -105,14 +86,23 @@ public class GameManager implements Listener {
             }
         }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            startUtils.teleportTeamsToSpawnLocations();
-            startGraceState(graceTimeTicks);
-        }, 5 * 20); // wait 5s for countdown to finish
+        // Count active teams
+        int activeTeams = (int) teamManager.getTeams().values().stream()
+                .filter(team -> team.getPlayers().stream()
+                        .map(Bukkit::getPlayer).anyMatch(Objects::nonNull))
+                .count();
 
-        sender.sendMessage(ChatColor.GREEN + "Game started successfully with a grace period of " + graceTimeMinutes + " minutes.");
+        if (activeTeams < 2) {
+            sender.sendMessage(ChatColor.RED + "At least 2 teams are required to start (current: " + activeTeams + ")");
+            return;
+        }
 
-        // Set player state to ALIVE for all players in teams
+        setState(GameState.STARTING);
+        sender.sendMessage(ChatColor.GREEN + "Generating spawn locations... this might take a minute.");
+        startUtils.generateSpawnLocationsAndTeleportTeams();
+        startUtils.broadcastCountdown(5);
+
+        // Set player states
         for (Team team : teamManager.getTeams().values()) {
             for (String playerName : team.getPlayers()) {
                 Player player = Bukkit.getPlayer(playerName);
@@ -121,6 +111,21 @@ public class GameManager implements Listener {
                 }
             }
         }
+
+        // Set grace
+        int graceTimeMinutes = plugin.getConfig().getInt("graceTime", 5);
+        final long graceTimeTicks = graceTimeMinutes * 60L * 20L;
+
+        // TP after countdown
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            try {
+                startUtils.teleportTeamsToSpawnLocations();
+                startGraceState(graceTimeTicks);
+            } catch (Exception e) {
+                Bukkit.getLogger().severe("Error during teleportation: " + e.getMessage());
+                stopGame();
+            }
+        }, 5 * 20);
     }
     public void stopGame() {
         if (currentState == GameState.LOBBY) {
@@ -133,7 +138,6 @@ public class GameManager implements Listener {
         gulagManager.clearGulag();
 
         Location lobbyLocation = getLobbyLocation();
-        // TODO: Unregister gulag listener
         for (Team team : teamManager.getTeams().values()) {
             for (String playerName : team.getPlayers()) {
                 Player player = Bukkit.getPlayer(playerName);

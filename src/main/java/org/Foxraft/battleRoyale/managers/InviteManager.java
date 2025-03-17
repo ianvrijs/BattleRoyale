@@ -2,6 +2,7 @@ package org.Foxraft.battleRoyale.managers;
 
 import org.Foxraft.battleRoyale.models.Invite;
 import org.Foxraft.battleRoyale.models.Team;
+import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -19,10 +20,12 @@ public class InviteManager {
     private static final long INVITE_EXPIRATION_TIME = 60000; // 1 minute
     private final TeamManager teamManager;
     private final JavaPlugin plugin;
+    private final TabManager tabManager;
 
-    public InviteManager(JavaPlugin plugin, TeamManager teamManager) {
+    public InviteManager(JavaPlugin plugin, TeamManager teamManager, TabManager tabManager) {
         this.teamManager = teamManager;
         this.plugin = plugin;
+        this.tabManager = tabManager;
     }
 
     public void invitePlayer(Player inviter, Player invitee) {
@@ -74,6 +77,8 @@ public class InviteManager {
             invitations.remove(invitee.getName());
             invitee.sendMessage(ChatColor.GREEN + "You have joined " + inviter.getName() + "'s team.");
             inviter.sendMessage(ChatColor.GREEN + invitee.getName() + " has joined your team.");
+            tabManager.updatePlayerTab(inviter, PlayerState.LOBBY);
+            tabManager.updatePlayerTab(invitee, PlayerState.LOBBY);
         } else {
             invitee.sendMessage(ChatColor.RED + "No invitation found from " + inviter.getName() + ".");
         }
