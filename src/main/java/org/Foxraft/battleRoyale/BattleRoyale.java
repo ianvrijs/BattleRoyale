@@ -7,6 +7,7 @@ import org.Foxraft.battleRoyale.states.gulag.GulagManager;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.utils.StartUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.Foxraft.battleRoyale.commands.CommandHandler;
 import org.Foxraft.battleRoyale.commands.CommandTabCompleter;
@@ -19,12 +20,11 @@ public final class BattleRoyale extends JavaPlugin {
     public void onEnable() {
         //enable pvp :oops:
         String worldName = getConfig().getString("lobby.world", "world");
-        org.bukkit.World world = Bukkit.getWorld(worldName);
-        if (world == null) {
-            getLogger().severe("World '" + worldName + "' not found!");
-            return;
+        getServer().getPluginManager().registerEvents(new WorldLoadListener(this, worldName), this);
+        World world = Bukkit.getWorld(worldName);
+        if (world != null) {
+            world.setPVP(true);
         }
-        world.setPVP(true);
         DeathMessageManager deathMessageManager = new DeathMessageManager();
         PlayerManager playerManager = new PlayerManager();
         TeamManager teamManager = new TeamManager(this, playerManager);
