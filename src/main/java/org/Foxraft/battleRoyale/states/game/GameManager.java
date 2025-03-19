@@ -43,6 +43,7 @@ public class GameManager implements Listener {
     private final TimerManager timerManager;
     private final TabManager tabManager;
     private int gracePeriodTaskId = -1;
+    private final String worldName;
 
     public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager, TabManager tabManager) {
         this.plugin = plugin;
@@ -54,6 +55,7 @@ public class GameManager implements Listener {
         this.gulagManager = gulagManager;
         this.timerManager = timerManager;
         this.tabManager = tabManager;
+        this.worldName = plugin.getConfig().getString("lobby.world", "world");
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
     @EventHandler
@@ -164,12 +166,12 @@ public class GameManager implements Listener {
 
         // Disable PvP and enable keep inventory
         pluginManager.registerEvents(gracePeriodListener, plugin);
-        Objects.requireNonNull(Bukkit.getWorld("world")).setGameRule(GameRule.KEEP_INVENTORY, true);
+        Objects.requireNonNull(Bukkit.getWorld(worldName)).setGameRule(GameRule.KEEP_INVENTORY, true);
 
         gracePeriodTaskId = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             // Logic once grace period ends
             HandlerList.unregisterAll(gracePeriodListener);
-            Objects.requireNonNull(Bukkit.getWorld("world")).setGameRule(GameRule.KEEP_INVENTORY, false);
+            Objects.requireNonNull(Bukkit.getWorld(worldName)).setGameRule(GameRule.KEEP_INVENTORY, false);
             startStormState();
         }, graceTimeTicks).getTaskId();
     }

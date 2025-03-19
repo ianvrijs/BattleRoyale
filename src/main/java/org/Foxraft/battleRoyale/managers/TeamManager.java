@@ -77,12 +77,20 @@ public class TeamManager {
                 Team team = entry.getValue();
                 synchronized (team) {
                     if (team.getPlayers().contains(player.getName())) {
+                        for (String teammateName : team.getPlayers()) {
+                            if (!teammateName.equals(player.getName())) {
+                                Player teammate = Bukkit.getPlayer(teammateName);
+                                if (teammate != null && teammate.isOnline()) {
+                                    teammate.sendMessage(ChatColor.RED + player.getName() + " has left your team.");
+                                }
+                            }
+                        }
+
                         team.getPlayers().remove(player.getName());
                         if (team.getPlayers().isEmpty()) {
                             iterator.remove();
                         }
                         saveTeams();
-                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
                         return;
                     }
                 }

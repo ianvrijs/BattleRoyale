@@ -1,6 +1,7 @@
 package org.Foxraft.battleRoyale.managers;
 
 import org.Foxraft.battleRoyale.events.PlayerStateChangeEvent;
+import org.Foxraft.battleRoyale.events.TeamLeaveEvent;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.game.GameState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
@@ -17,11 +18,13 @@ import java.util.Objects;
 public class TabManager implements Listener {
     private final Scoreboard scoreboard;
     private final TeamManager teamManager;
+    private final PlayerManager playerManager;
     private String header;
     private String footer;
 
-    public TabManager(TeamManager teamManager) {
+    public TabManager(TeamManager teamManager, PlayerManager playerManager) {
         this.teamManager = teamManager;
+        this.playerManager = playerManager;
         this.scoreboard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
         setDefaultHeaderFooter();
     }
@@ -32,7 +35,15 @@ public class TabManager implements Listener {
         this.footer = "\n" + ChatColor.GRAY + "Current State: %state%" +
                 "\n" + ChatColor.GOLD + "=== Foxcraft ===";
     }
+    @EventHandler
+    public void onTeamLeave(TeamLeaveEvent event) {
+        Player player = event.getPlayer();
+        removePlayer(player);
 
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            updatePlayerTab(onlinePlayer, playerManager.getPlayerState(onlinePlayer));
+        }
+    }
     @EventHandler
     public void onPlayerStateChange(PlayerStateChangeEvent event) {
         updatePlayerTab(event.getPlayer(), event.getNewState());

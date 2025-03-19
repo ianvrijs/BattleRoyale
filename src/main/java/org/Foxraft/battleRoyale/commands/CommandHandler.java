@@ -1,8 +1,11 @@
 package org.Foxraft.battleRoyale.commands;
 
+import org.Foxraft.battleRoyale.events.TeamLeaveEvent;
+import org.Foxraft.battleRoyale.managers.CooldownManager;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -21,6 +24,8 @@ public class CommandHandler implements CommandExecutor {
     private final InviteManager inviteManager;
     private final GameManager gameManager;
     private final PlayerManager playerManager;
+    private final CooldownManager cooldownManager = new CooldownManager();
+
 
     public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager) {
         this.plugin = plugin;
@@ -37,8 +42,13 @@ public class CommandHandler implements CommandExecutor {
             sender.sendMessage(ChatColor.RED + "Usage: /br <subcommand> [args]");
             return true;
         }
-
         String subCommand = args[0].toLowerCase();
+        if (subCommand.equals("setup") || subCommand.equals("start") || subCommand.equals("stop")) {
+            if (!sender.hasPermission("br.admin")) {
+                sender.sendMessage(ChatColor.RED + "nope.");
+                return true;
+            }
+        }
         switch (subCommand) {
             case "setup":
                 handleSetupCommand(sender, args);
@@ -62,6 +72,10 @@ public class CommandHandler implements CommandExecutor {
     private void handleSetupCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sender.sendMessage(ChatColor.RED + "Usage: /br setup <setlobby|setmapradius|setstormspeed|setgulag|setgracetime|setgulagheight>");
+            return;
+        }
+        if(!sender.hasPermission("br.admin")) {
+            sender.sendMessage(ChatColor.RED + "Nuh uh.");
             return;
         }
 
@@ -137,6 +151,20 @@ public class CommandHandler implements CommandExecutor {
                 break;
         }
         switch (action) {
+            case "invite", "accept", "list", "leave" -> {
+                if (!sender.hasPermission("br.team")) {
+                    sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                    return;
+                }
+            }
+            case "create", "add", "remove" -> {
+                if (!sender.hasPermission("br.admin")) {
+                    sender.sendMessage(ChatColor.RED + "Nuh-uh.");
+                    return;
+                }
+            }
+        }
+        switch (action) {
             case "create":
                 if (args.length == 4 && sender instanceof Player) {
                     Player player1 = plugin.getServer().getPlayer(args[2]);
@@ -170,6 +198,7 @@ public class CommandHandler implements CommandExecutor {
                     Player player = plugin.getServer().getPlayer(args[2]);
                     if (player != null) {
                         teamManager.removePlayerFromTeam(player);
+                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
                         sender.sendMessage(ChatColor.GREEN + "Player " + player.getName() + " removed from their team.");
                     } else {
                         sender.sendMessage(ChatColor.RED + "Player not found.");
@@ -181,7 +210,9 @@ public class CommandHandler implements CommandExecutor {
             case "leave":
                 if (sender instanceof Player player) {
                     if (teamManager.isPlayerInAnyTeam(player)) {
+
                         teamManager.removePlayerFromTeam(player);
+                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
                         sender.sendMessage(ChatColor.GREEN + "You have left your team.");
                     } else {
                         sender.sendMessage(ChatColor.RED + "You are not in any team.");
@@ -194,6 +225,9 @@ public class CommandHandler implements CommandExecutor {
                 if (args.length == 3 && sender instanceof Player inviter) {
                     Player invitee = plugin.getServer().getPlayer(args[2]);
                     if (invitee != null) {
+                        if (cooldownManager.hasCooldown((Player) sender, "invite")) {
+                            break;
+                        }
                         inviteManager.invitePlayer(inviter, invitee);
                     } else {
                         sender.sendMessage(ChatColor.RED + "Player not found.");
@@ -216,6 +250,9 @@ public class CommandHandler implements CommandExecutor {
                 break;
             case "list":
                 if (args.length == 3) {
+                    if (cooldownManager.hasCooldown((Player) sender, "list")) {
+                        break;
+                    }
                     int page = Integer.parseInt(args[2]);
                     teamManager.listTeams(sender, page);
                 } else {

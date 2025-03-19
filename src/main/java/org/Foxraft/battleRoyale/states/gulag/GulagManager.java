@@ -46,7 +46,8 @@ public class GulagManager {
         this.gulagLocation1 = getLocationFromConfig(plugin, "gulag1", null);
         this.gulagLocation2 = getLocationFromConfig(plugin, "gulag2", null);
         this.lobbyLocation = getLocationFromConfig(plugin, "lobby", null);
-        this.defaultRespawnLocation = new Location(Bukkit.getWorld("world"), 0, Objects.requireNonNull(Bukkit.getWorld("world")).getHighestBlockYAt(0, 0) + 2, 0);
+        String worldName = plugin.getConfig().getString("lobby.world", "world");
+        this.defaultRespawnLocation = new Location(Bukkit.getWorld(worldName), 0, Objects.requireNonNull(Bukkit.getWorld(worldName)).getHighestBlockYAt(0, 0) + 2, 0);
         this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0); // Updated key
         this.teamManager = teamManager;
     }

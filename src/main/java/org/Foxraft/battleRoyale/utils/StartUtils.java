@@ -14,10 +14,12 @@ public class StartUtils {
     private final JavaPlugin plugin;
     private final TeamManager teamManager;
     private List<Location> spawnLocations;
+    private String worldName;
 
     public StartUtils(JavaPlugin plugin, TeamManager teamManager) {
         this.plugin = plugin;
         this.teamManager = teamManager;
+        this.worldName = plugin.getConfig().getString("lobby.world", "world");
     }
 
     public void generateSpawnLocationsAndTeleportTeams() {

@@ -28,7 +28,7 @@ public final class BattleRoyale extends JavaPlugin {
         DeathMessageManager deathMessageManager = new DeathMessageManager();
         PlayerManager playerManager = new PlayerManager();
         TeamManager teamManager = new TeamManager(this, playerManager);
-        TabManager tabManager = new TabManager(teamManager);
+        TabManager tabManager = new TabManager(teamManager, playerManager);
         getServer().getPluginManager().registerEvents(tabManager, this);
         TeamDamageListener teamDamageListener = new TeamDamageListener(teamManager, playerManager);
         StartUtils startUtils = new StartUtils(this, teamManager);
