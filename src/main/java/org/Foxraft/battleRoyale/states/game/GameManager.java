@@ -2,6 +2,7 @@ package org.Foxraft.battleRoyale.states.game;
 
 import org.Foxraft.battleRoyale.events.StormReachedFinalDestinationEvent;
 import org.Foxraft.battleRoyale.listeners.GracePeriodListener;
+import org.Foxraft.battleRoyale.listeners.ScoreboardListener;
 import org.Foxraft.battleRoyale.listeners.TeamDamageListener;
 import org.Foxraft.battleRoyale.managers.*;
 import org.Foxraft.battleRoyale.models.Team;
@@ -44,6 +45,7 @@ public class GameManager implements Listener {
     private final TabManager tabManager;
     private int gracePeriodTaskId = -1;
     private final String worldName;
+    private ScoreboardListener scoreboardListener;
 
     public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager, TabManager tabManager) {
         this.plugin = plugin;
@@ -62,6 +64,9 @@ public class GameManager implements Listener {
     public void onStormReachedFinalDestination(StormReachedFinalDestinationEvent event) {
         Bukkit.getLogger().info("StormReachedFinalDestinationEvent received");
         startDeathmatchState();
+    }
+    public void setScoreboardListener(ScoreboardListener listener) {
+        this.scoreboardListener = listener;
     }
     public void startGame(CommandSender sender) {
         if (currentState != GameState.LOBBY) {
@@ -196,14 +201,13 @@ public class GameManager implements Listener {
 
     private void setState(GameState newState) {
         this.currentState = newState;
-        Bukkit.getLogger().info("Game state changed to: " + newState);
-
-        // Start timer for new state
         timerManager.startTimer(getCurrentState());
 
-        tabManager.updateHeaderFooter(newState);
         for (Player player : Bukkit.getOnlinePlayers()) {
-            tabManager.updatePlayerTab(player, playerManager.getPlayerState(player));
+            PlayerState playerState = playerManager.getPlayerState(player);
+            tabManager.updateHeaderFooter(newState);
+            tabManager.updatePlayerTab(player, playerState);
+            scoreboardListener.updateOnGameStateChange(newState);
         }
         String message = switch (newState) {
             case STARTING -> ChatColor.GREEN + "⚔ Prepare for battle! The game is starting...";
@@ -211,7 +215,6 @@ public class GameManager implements Listener {
             case STORM -> ChatColor.RED + "⚡ The storm is approaching! PvP has been enabled!";
             case DEATHMATCH -> ChatColor.GOLD + "☠ Final showdown! May the best team win!";
             case LOBBY -> ChatColor.AQUA + "✦ Game ended - returning to lobby.";
-            default -> ChatColor.GREEN + "Game state: " + newState;
         };
 
         Bukkit.broadcastMessage(message);

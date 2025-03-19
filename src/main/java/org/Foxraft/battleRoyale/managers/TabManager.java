@@ -49,27 +49,26 @@ public class TabManager implements Listener {
         updatePlayerTab(event.getPlayer(), event.getNewState());
     }
 
-    public void updatePlayerTab(Player player, PlayerState state) {
-        Team gameTeam = teamManager.getTeam(player);
-        if (gameTeam == null) return;
+    public void updatePlayerTab(Player player, PlayerState playerState) {
+        Team team = teamManager.getTeam(player);
+        String prefix = "";
 
-        String teamId = gameTeam.getId();
-        org.bukkit.scoreboard.Team scoreboardTeam = scoreboard.getTeam(teamId);
-
-        if (scoreboardTeam == null) {
-            scoreboardTeam = scoreboard.registerNewTeam(teamId);
-            scoreboardTeam.setPrefix(ChatColor.GRAY + "[" + teamId + "] ");
+        if (team != null) {
+            prefix = ChatColor.GOLD  + team.getId() + " " + ChatColor.RESET;
         }
 
-        switch (state) {
-            case ALIVE -> scoreboardTeam.setColor(ChatColor.GREEN);
-            case GULAG -> scoreboardTeam.setColor(ChatColor.RED);
-            case DEAD -> scoreboardTeam.setColor(ChatColor.DARK_GRAY);
-            default -> scoreboardTeam.setColor(ChatColor.GRAY);
-        }
+        String displayName = prefix + formatPlayerState(playerState) + " " + player.getName();
+        player.setPlayerListName(displayName);
+    }
 
-        scoreboardTeam.addEntry(player.getName());
-        player.setScoreboard(scoreboard);
+    private String formatPlayerState(PlayerState state) {
+        return switch (state) {
+            case ALIVE -> ChatColor.GREEN + "●";
+            case DEAD -> ChatColor.RED + "●";
+            case LOBBY -> ChatColor.GRAY + "●";
+            case GULAG -> ChatColor.YELLOW + "●";
+            case RESURRECTED -> ChatColor.AQUA + "●";
+        };
     }
 
     public void updateHeaderFooter(GameState gameState) {

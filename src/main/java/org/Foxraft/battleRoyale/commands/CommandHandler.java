@@ -1,9 +1,8 @@
 package org.Foxraft.battleRoyale.commands;
 
 import org.Foxraft.battleRoyale.events.TeamLeaveEvent;
-import org.Foxraft.battleRoyale.managers.CooldownManager;
+import org.Foxraft.battleRoyale.managers.*;
 import org.Foxraft.battleRoyale.states.game.GameManager;
-import org.Foxraft.battleRoyale.managers.InviteManager;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,8 +11,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.BattleRoyale;
-import org.Foxraft.battleRoyale.managers.SetupManager;
-import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.states.game.GameState;
 
 
@@ -24,16 +21,18 @@ public class CommandHandler implements CommandExecutor {
     private final InviteManager inviteManager;
     private final GameManager gameManager;
     private final PlayerManager playerManager;
+    private final StatsManager statsManager;
     private final CooldownManager cooldownManager = new CooldownManager();
 
 
-    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager) {
+    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager, StatsManager statsManager)  {
         this.plugin = plugin;
         this.teamManager = teamManager;
         this.setupManager = setupManager;
         this.inviteManager = inviteManager;
         this.gameManager = gameManager;
         this.playerManager = playerManager;
+        this.statsManager = statsManager;
     }
 
     @Override
@@ -61,6 +60,23 @@ public class CommandHandler implements CommandExecutor {
                 break;
             case "stop":
                 gameManager.stopGame();
+                break;
+            case "clearstats":
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /br clearstats <player>");
+                    return true;
+                }
+                if (sender.hasPermission("br.admin")) {
+                    Player targetPlayer = Bukkit.getPlayer(args[1]);
+                    if (targetPlayer != null) {
+                        statsManager.resetStats(targetPlayer);
+                        sender.sendMessage(ChatColor.GREEN + "Stats cleared for " + targetPlayer.getName() + ".");
+                    } else {
+                        sender.sendMessage(ChatColor.RED + "Player not found.");
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.RED + "nope.");
+                }
                 break;
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + subCommand);

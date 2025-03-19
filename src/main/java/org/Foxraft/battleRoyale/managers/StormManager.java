@@ -47,21 +47,22 @@ public class StormManager {
     }
 
     private void startStormShrinking(WorldBorder worldBorder) {
+        World gameWorld = Bukkit.getWorld(worldName);
         damageTask = new BukkitRunnable() {
             @Override
             public void run() {
                 double finalRadius = 50; // death match area
 
-                for (Player player : Bukkit.getOnlinePlayers()) {
+                assert gameWorld != null;
+                for (Player player : gameWorld.getPlayers()) {
                     if (!worldBorder.isInside(player.getLocation())) {
                         player.damage(1.0);
                         player.playNote(player.getLocation(), Instrument.IRON_XYLOPHONE, Note.natural(1, Note.Tone.G));
                         player.playNote(player.getLocation(), Instrument.IRON_XYLOPHONE, Note.natural(1, Note.Tone.A));
-                        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED +"You are in the storm!"));
+                        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "You are in the storm!"));
                     }
                 }
 
-                // Check if the border has reached its final size
                 if (worldBorder.getSize() <= finalRadius * 2) {
                     Bukkit.getPluginManager().callEvent(new StormReachedFinalDestinationEvent());
                     this.cancel();
@@ -70,9 +71,18 @@ public class StormManager {
         };
         damageTask.runTaskTimer(plugin, 0L, 20L); // 1s
     }
-    public void resetBorder(){
-        WorldBorder worldBorder = Objects.requireNonNull(Bukkit.getWorld(worldName)).getWorldBorder();
-        worldBorder.setSize(mapRadius * 2);
+    public void resetBorder() {
+        // smol delay to avoid exception
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                plugin.getLogger().warning("World '" + worldName + "' not found for border reset.");
+                return;
+            }
+            WorldBorder border = world.getWorldBorder();
+            border.setCenter(0, 0);
+            border.setSize(mapRadius*2);
+        }, 20L); // 1s
     }
 
     public int calculateStormDuration() {

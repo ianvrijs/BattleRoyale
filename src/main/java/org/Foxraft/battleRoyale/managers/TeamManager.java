@@ -210,4 +210,18 @@ public class TeamManager {
         }
         return true;
     }
+
+    public Player getTeammate(Player player) {
+        Team team = getTeam(player);
+        if (team == null || team.getPlayers().size() != 2) {
+            return null;
+        }
+
+        for (String playerName : team.getPlayers()) {
+            if (!playerName.equals(player.getName())) {
+                return Bukkit.getPlayer(playerName);
+            }
+        }
+        return null;
+    }
 }

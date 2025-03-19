@@ -2,6 +2,7 @@ name: BattleRoyale
 version: '1.0-SNAPSHOT'
 main: org.Foxraft.battleRoyale.BattleRoyale
 api-version: '1.21'
+softdepend: [PlaceholderAPI]
 commands:
   br:
     description: Battle Royale commands

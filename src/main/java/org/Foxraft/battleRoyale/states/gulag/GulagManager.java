@@ -5,10 +5,7 @@ import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.game.GameState;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -40,6 +37,15 @@ public class GulagManager {
     private PlayerMoveListener playerMoveListener;
     private boolean countdownActive = false;
 
+    private Location getDefaultRespawnLocation(String worldName) {
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            plugin.getLogger().warning("World '" + worldName + "' not found. Using default world.");
+            world = Bukkit.getWorlds().get(0);
+        }
+        return new Location(world, 0, world.getHighestBlockYAt(0, 0) + 2, 0);
+    }
+
     public GulagManager(PlayerManager playerManager, JavaPlugin plugin, TeamManager teamManager) {
         this.playerManager = playerManager;
         this.plugin = plugin;
@@ -47,8 +53,8 @@ public class GulagManager {
         this.gulagLocation2 = getLocationFromConfig(plugin, "gulag2", null);
         this.lobbyLocation = getLocationFromConfig(plugin, "lobby", null);
         String worldName = plugin.getConfig().getString("lobby.world", "world");
-        this.defaultRespawnLocation = new Location(Bukkit.getWorld(worldName), 0, Objects.requireNonNull(Bukkit.getWorld(worldName)).getHighestBlockYAt(0, 0) + 2, 0);
-        this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0); // Updated key
+        this.defaultRespawnLocation = getDefaultRespawnLocation(worldName);
+        this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0);
         this.teamManager = teamManager;
     }
     public void setGameManager(GameManager gameManager) {
