@@ -9,6 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 public class StartUtils {
     private final JavaPlugin plugin;
@@ -69,7 +70,7 @@ public class StartUtils {
 
                 Chunk chunk = world.getChunkAt(x >> 4, z >> 4);
                 if (!chunk.isLoaded()) {
-                    chunk.load(true);
+                    chunk.load();
                 }
 
                 int highestY = world.getHighestBlockYAt(x, z);

@@ -11,10 +11,7 @@ import org.Foxraft.battleRoyale.states.gulag.GulagState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.Foxraft.battleRoyale.utils.StartUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameRule;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -109,16 +106,6 @@ public class GameManager implements Listener {
         startUtils.generateSpawnLocationsAndTeleportTeams();
         startUtils.broadcastCountdown(5);
 
-        // Set player states
-        for (Team team : teamManager.getTeams().values()) {
-            for (String playerName : team.getPlayers()) {
-                Player player = Bukkit.getPlayer(playerName);
-                if (player != null) {
-                    playerManager.setPlayerState(player, PlayerState.ALIVE);
-                }
-            }
-        }
-
         // Set grace
         int graceTimeMinutes = plugin.getConfig().getInt("graceTime", 5);
         final long graceTimeTicks = graceTimeMinutes * 60L * 20L;
@@ -127,6 +114,16 @@ public class GameManager implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             try {
                 startUtils.teleportTeamsToSpawnLocations();
+
+                for (Team team : teamManager.getTeams().values()) {
+                    for (String playerName : team.getPlayers()) {
+                        Player player = Bukkit.getPlayer(playerName);
+                        if (player != null) {
+                            playerManager.setPlayerState(player, PlayerState.ALIVE);
+                        }
+                    }
+                }
+
                 startGraceState(graceTimeTicks);
             } catch (Exception e) {
                 Bukkit.getLogger().severe("Error during teleportation: " + e.getMessage());
@@ -203,12 +200,9 @@ public class GameManager implements Listener {
         this.currentState = newState;
         timerManager.startTimer(getCurrentState());
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            PlayerState playerState = playerManager.getPlayerState(player);
-            tabManager.updateHeaderFooter(newState);
-            tabManager.updatePlayerTab(player, playerState);
-            scoreboardListener.updateOnGameStateChange(newState);
-        }
+        tabManager.updateHeaderFooter(newState);
+        scoreboardListener.updateOnGameStateChange(newState);
+
         String message = switch (newState) {
             case STARTING -> ChatColor.GREEN + "⚔ Prepare for battle! The game is starting...";
             case GRACE -> ChatColor.YELLOW + "☮ Grace period has begun! Gather resources and prepare your strategy.";
@@ -319,5 +313,9 @@ public class GameManager implements Listener {
 
     public TeamManager getTeamManager() {
         return teamManager;
+    }
+
+    public JavaPlugin getPlugin() {
+        return plugin;
     }
 }

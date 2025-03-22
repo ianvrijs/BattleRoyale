@@ -114,22 +114,25 @@ public class GulagManager {
             return;
         }
 
-        // Normal gulag enlistment logic
-        playerManager.setPlayerState(player, PlayerState.GULAG);
-        playerManager.setEnteredGulag(player, true);
         gulagQueue.add(player);
+        if (gulagQueue.size() <= 2) {
+            // Players in positions 1-2 are actively in gulag
+            playerManager.setPlayerState(player, PlayerState.GULAG);
+            playerManager.setEnteredGulag(player, true);
+            player.teleport(gulagQueue.size() == 1 ? gulagLocation1 : gulagLocation2);
 
-        if (gulagQueue.size() == 1) {
-            player.teleport(gulagLocation1);
-        } else if (gulagQueue.size() == 2) {
-            player.teleport(gulagLocation2);
-            startGulagCountdown();
+            if (gulagQueue.size() == 2) {
+                startGulagCountdown();
+            }
         } else {
+            // Players in position 3+ are waiting
+            playerManager.setPlayerState(player, PlayerState.DEAD);
             player.teleport(lobbyLocation);
             player.sendMessage(ChatColor.RED + "Sumo is full. Please wait for the next match.");
         }
 
-        if (gulagQueue.size() == 1 || gulagQueue.size() == 2) {
+        // Set up move listener only for active gulag players
+        if (gulagQueue.size() <= 2) {
             Player player1 = gulagQueue.peek();
             Player player2 = gulagQueue.size() > 1 ? ((LinkedList<Player>) gulagQueue).get(1) : null;
             playerMoveListener = new PlayerMoveListener(player1, player2, this);
@@ -317,5 +320,10 @@ public class GulagManager {
 
     public List<Player> getGulagQueue() {
         return new LinkedList<>(gulagQueue);
+    }
+
+    public boolean isGulagWorldReady() {
+        return gulagLocation1 != null && gulagLocation1.getWorld() != null &&
+                gulagLocation2 != null && gulagLocation2.getWorld() != null;
     }
 }

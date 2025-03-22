@@ -202,10 +202,13 @@ public class TeamManager {
 
         for (String playerName : team.getPlayers()) {
             Player player = Bukkit.getPlayer(playerName);
-            if (player != null &&
-                    (playerManager.getPlayerState(player) == PlayerState.ALIVE ||
-                            playerManager.getPlayerState(player) == PlayerState.GULAG)) {
-                return false;
+            if (player != null) {
+                PlayerState state = playerManager.getPlayerState(player);
+                if (state == PlayerState.ALIVE ||
+                        state == PlayerState.RESURRECTED ||
+                        state == PlayerState.GULAG) {
+                    return false;
+                }
             }
         }
         return true;

@@ -23,9 +23,10 @@ public class CommandHandler implements CommandExecutor {
     private final PlayerManager playerManager;
     private final StatsManager statsManager;
     private final CooldownManager cooldownManager = new CooldownManager();
+    private final JoinManager joinManager;
 
 
-    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager, StatsManager statsManager)  {
+    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager, StatsManager statsManager, JoinManager joinManager)  {
         this.plugin = plugin;
         this.teamManager = teamManager;
         this.setupManager = setupManager;
@@ -33,6 +34,7 @@ public class CommandHandler implements CommandExecutor {
         this.gameManager = gameManager;
         this.playerManager = playerManager;
         this.statsManager = statsManager;
+        this.joinManager = joinManager;
     }
 
     @Override
@@ -76,6 +78,17 @@ public class CommandHandler implements CommandExecutor {
                     }
                 } else {
                     sender.sendMessage(ChatColor.RED + "nope.");
+                }
+                break;
+            case "join":
+                if (sender instanceof Player player) {
+                    if(!player.hasPermission("br.team")) {
+                        player.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                        return true;
+                    }
+                    joinManager.handleJoin(player);
+                } else {
+                    sender.sendMessage(ChatColor.RED + "This command can only be run by a player.");
                 }
                 break;
             default:
