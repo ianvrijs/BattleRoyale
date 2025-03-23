@@ -80,4 +80,9 @@ public class StatsManager {
         saveStats();
         player.sendMessage(ChatColor.YELLOW + "Your stats have been reset by an admin.");
     }
+    public void clearAllStats() {
+        killsCache.clear();
+        statsConfig.set("players", null);
+        saveStats();
+    }
 }

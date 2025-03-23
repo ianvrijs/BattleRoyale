@@ -64,11 +64,18 @@ public class CommandHandler implements CommandExecutor {
                 gameManager.stopGame();
                 break;
             case "clearstats":
-                if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /br clearstats <player>");
+                if (!sender.hasPermission("br.admin")) {
+                    sender.sendMessage(ChatColor.RED + "nope.");
                     return true;
                 }
-                if (sender.hasPermission("br.admin")) {
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /br clearstats <player|all>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("all")) {
+                    statsManager.clearAllStats();
+                    sender.sendMessage(ChatColor.GREEN + "All stats have been cleared.");
+                } else {
                     Player targetPlayer = Bukkit.getPlayer(args[1]);
                     if (targetPlayer != null) {
                         statsManager.resetStats(targetPlayer);
@@ -76,9 +83,28 @@ public class CommandHandler implements CommandExecutor {
                     } else {
                         sender.sendMessage(ChatColor.RED + "Player not found.");
                     }
-                } else {
-                    sender.sendMessage(ChatColor.RED + "nope.");
                 }
+                break;
+            case "exempt":
+                if (!sender.hasPermission("br.admin")) {
+                    sender.sendMessage(ChatColor.RED + "nope.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /br exempt <player>");
+                    return true;
+                }
+                Player targetPlayer = Bukkit.getPlayer(args[1]);
+                if (targetPlayer == null) {
+                    sender.sendMessage(ChatColor.RED + "Player not found.");
+                    return true;
+                }
+                playerManager.toggleExemption(targetPlayer);
+                boolean isExempted = playerManager.isExempted(targetPlayer);
+                sender.sendMessage(ChatColor.GREEN + targetPlayer.getName() + " is " +
+                        (isExempted ? "now" : "no longer") + " exempted from matchmaking.");
+                targetPlayer.sendMessage(ChatColor.YELLOW + "You are " +
+                        (isExempted ? "now" : "no longer") + " exempted from matchmaking.");
                 break;
             case "join":
                 if (sender instanceof Player player) {

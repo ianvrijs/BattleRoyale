@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -118,5 +119,12 @@ public class TimerManager {
 
     public int getRemainingSeconds() {
         return remainingSeconds;
+    }
+
+    public void addPlayer(Player player) {
+        if (timerBar != null && remainingSeconds > 0) {
+            timerBar.addPlayer(player);
+            updateBarTitle();
+        }
     }
 }
