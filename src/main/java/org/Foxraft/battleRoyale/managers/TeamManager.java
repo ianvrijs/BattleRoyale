@@ -77,12 +77,20 @@ public class TeamManager {
                 Team team = entry.getValue();
                 synchronized (team) {
                     if (team.getPlayers().contains(player.getName())) {
+                        for (String teammateName : team.getPlayers()) {
+                            if (!teammateName.equals(player.getName())) {
+                                Player teammate = Bukkit.getPlayer(teammateName);
+                                if (teammate != null && teammate.isOnline()) {
+                                    teammate.sendMessage(ChatColor.RED + player.getName() + " has left your team.");
+                                }
+                            }
+                        }
+
                         team.getPlayers().remove(player.getName());
                         if (team.getPlayers().isEmpty()) {
                             iterator.remove();
                         }
                         saveTeams();
-                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
                         return;
                     }
                 }
@@ -194,12 +202,29 @@ public class TeamManager {
 
         for (String playerName : team.getPlayers()) {
             Player player = Bukkit.getPlayer(playerName);
-            if (player != null &&
-                    (playerManager.getPlayerState(player) == PlayerState.ALIVE ||
-                            playerManager.getPlayerState(player) == PlayerState.GULAG)) {
-                return false;
+            if (player != null) {
+                PlayerState state = playerManager.getPlayerState(player);
+                if (state == PlayerState.ALIVE ||
+                        state == PlayerState.RESURRECTED ||
+                        state == PlayerState.GULAG) {
+                    return false;
+                }
             }
         }
         return true;
+    }
+
+    public Player getTeammate(Player player) {
+        Team team = getTeam(player);
+        if (team == null || team.getPlayers().size() != 2) {
+            return null;
+        }
+
+        for (String playerName : team.getPlayers()) {
+            if (!playerName.equals(player.getName())) {
+                return Bukkit.getPlayer(playerName);
+            }
+        }
+        return null;
     }
 }

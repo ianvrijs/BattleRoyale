@@ -3,6 +3,7 @@ package org.Foxraft.battleRoyale.listeners;
 import org.Foxraft.battleRoyale.managers.DeathMessageManager;
 import org.Foxraft.battleRoyale.models.Team;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +15,7 @@ import org.Foxraft.battleRoyale.states.game.GameState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.World;
 
 /**
  * This class listens for player death events and handles player respawning/ elimination.
@@ -39,46 +41,56 @@ public class PlayerDeathListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         Team team = gameManager.getTeamManager().getTeam(player);
+        World deathWorld = player.getWorld();
 
         event.setKeepInventory(false);
         event.setKeepLevel(true);
 
+        // First ensure the player respawns
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            GameState gameState = gameManager.getCurrentState();
-            PlayerState playerState = playerManager.getPlayerState(player);
-            Bukkit.getLogger().info("Player " + player.getName() + " died. Current state: " + playerState + ", Game state: " + gameState);
+            if (!player.isOnline()) return;
+            player.spigot().respawn();
 
-            switch (gameState) {
-                case GRACE:
-                    Bukkit.getLogger().info("Respawning player " + player.getName() + " at 0,0 during GRACE period.");
-                    respawnAtZeroZero(player);
-                    break;
-                case STORM:
-                    if (playerState == PlayerState.ALIVE) {
-                        player.spigot().respawn();
-                        gulagManager.enlistInGulag(player);
-                    } else {
-                        Bukkit.getLogger().info("Eliminating player " + player.getName() + " during STORM period.");
-                        eliminatePlayer(player);
+            // Handle game logic after respawn
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline()) return;
+
+                GameState gameState = gameManager.getCurrentState();
+                PlayerState playerState = playerManager.getPlayerState(player);
+
+                switch (gameState) {
+                    case GRACE -> {
+                        Location zeroZeroLocation = new Location(deathWorld, 0,
+                                deathWorld.getHighestBlockAt(0, 0).getY() + 2, 0);
+                        player.teleport(zeroZeroLocation);
+                        resetPlayerState(player);
                     }
-                    break;
-                default:
-                    Bukkit.getLogger().info("Eliminating player " + player.getName() + " during " + gameState + " period.");
-                    eliminatePlayer(player); // deathmatch or lobby
-                    break;
-            }
-            if (team != null && gameManager.getTeamManager().isTeamEliminated(team.getId())) {
-                Bukkit.broadcastMessage(deathMessageManager.getTeamEliminatedMessage(team.getName()));
-            }
-            playerManager.updatePlayerState(player, gameState);
-            gameManager.checkForWinningTeam();
+                    case STORM -> {
+                        if (playerState == PlayerState.ALIVE) {
+                            if (gulagManager.isGulagWorldReady()) {
+                                gulagManager.enlistInGulag(player);
+                            } else {
+                                eliminatePlayer(player);
+                                player.sendMessage(ChatColor.RED + "Gulag is not accessible. You have been eliminated.");
+                            }
+                        } else {
+                            eliminatePlayer(player);
+                        }
+                    }
+                    default -> eliminatePlayer(player);
+                }
+
+
+                if (team != null && !gameState.equals(GameState.LOBBY) && gameManager.getTeamManager().isTeamEliminated(team.getId())) {
+                    Bukkit.broadcastMessage(deathMessageManager.getTeamEliminatedMessage(team.getName()));
+                }
+                playerManager.updatePlayerState(player, gameState);
+                gameManager.checkForWinningTeam();
+            }, 1L);
         }, 1L);
     }
 
-    private void respawnAtZeroZero(Player player) {
-        Location zeroZeroLocation = new Location(player.getWorld(), 0, player.getWorld().getHighestBlockYAt(0, 0) + 2, 0);
-        player.spigot().respawn();
-        player.teleport(zeroZeroLocation);
+    private void resetPlayerState(Player player) {
         player.getInventory().clear();
         player.setHealth(20);
         player.setFoodLevel(20);
@@ -86,12 +98,11 @@ public class PlayerDeathListener implements Listener {
 
     private void eliminatePlayer(Player player) {
         playerManager.setPlayerState(player, PlayerState.DEAD);
-        Bukkit.getLogger().info("Player state set to: " + playerManager.getPlayerState(player));
         Location lobbyLocation = gameManager.getLobbyLocation();
-        player.spigot().respawn();
-        player.teleport(lobbyLocation);
-        player.getInventory().clear();
-        player.setHealth(20);
-        player.setFoodLevel(20);
+        if (lobbyLocation != null && lobbyLocation.getWorld() != null) {
+            player.spigot().respawn();
+            player.teleport(lobbyLocation);
+            resetPlayerState(player);
+        }
     }
 }

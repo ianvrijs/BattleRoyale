@@ -16,18 +16,17 @@ import java.util.Map;
  depends on: Invite, TeamManager, JavaPlugin
 */
 public class InviteManager {
-    private final Map<String, Invite> invitations = new HashMap<>();
-    private static final long INVITE_EXPIRATION_TIME = 60000; // 1 minute
     private final TeamManager teamManager;
     private final JavaPlugin plugin;
     private final TabManager tabManager;
+    private final Map<String, Invite> invitations = new HashMap<>();
+    private static final long INVITE_EXPIRATION_TIME = 60000;
 
     public InviteManager(JavaPlugin plugin, TeamManager teamManager, TabManager tabManager) {
         this.teamManager = teamManager;
         this.plugin = plugin;
         this.tabManager = tabManager;
     }
-
     public void invitePlayer(Player inviter, Player invitee) {
         if (inviter.equals(invitee)) {
             inviter.sendMessage("You cannot invite yourself.");
@@ -77,6 +76,7 @@ public class InviteManager {
             invitations.remove(invitee.getName());
             invitee.sendMessage(ChatColor.GREEN + "You have joined " + inviter.getName() + "'s team.");
             inviter.sendMessage(ChatColor.GREEN + invitee.getName() + " has joined your team.");
+            Bukkit.broadcastMessage(ChatColor.GOLD + inviter.getName() + ChatColor.GREEN + " and " + ChatColor.GOLD + invitee.getName() + ChatColor.GREEN + " have joined forces!");
             tabManager.updatePlayerTab(inviter, PlayerState.LOBBY);
             tabManager.updatePlayerTab(invitee, PlayerState.LOBBY);
         } else {

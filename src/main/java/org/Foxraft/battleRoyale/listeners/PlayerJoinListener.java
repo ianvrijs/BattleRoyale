@@ -1,12 +1,11 @@
 package org.Foxraft.battleRoyale.listeners;
 
+import org.Foxraft.battleRoyale.managers.TabManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
-import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.game.GameManager;
 import org.Foxraft.battleRoyale.states.game.GameState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -14,56 +13,48 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-/**
- * This class listens for player join events and handles player state changes.
- * It depends on the PlayerManager, TeamManager, and GameManager classes.
- */
 public class PlayerJoinListener implements Listener {
     private final PlayerManager playerManager;
     private final TeamManager teamManager;
     private final GameManager gameManager;
+    private final TabManager tabManager;
 
-    public PlayerJoinListener(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager) {
+    public PlayerJoinListener(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager, TabManager tabManager) {
         this.playerManager = playerManager;
         this.teamManager = teamManager;
         this.gameManager = gameManager;
+        this.tabManager = tabManager;
     }
-@EventHandler
-public void onPlayerJoin(PlayerJoinEvent event) {
-    Player player = event.getPlayer();
-    GameState currentState = gameManager.getCurrentState();
 
-    if (currentState == GameState.LOBBY) {
-        playerManager.setPlayerState(player, PlayerState.LOBBY);
-        player.teleport(gameManager.getLobbyLocation());
-    } else if (currentState != GameState.DEATHMATCH && currentState != GameState.STORM) {
-        if (!teamManager.isPlayerInAnyTeam(player)) {
-            boolean soloTeamFound = false;
-            for (Team team : teamManager.getTeams().values()) {
-                if (team.getPlayers().size() == 1) {
-                    teamManager.addPlayerToTeam(player, team.getId());
-                    Player teammate = Bukkit.getPlayer(team.getPlayers().get(0));
-                    if (teammate != null && teammate.isOnline()) {
-                        player.teleport(teammate.getLocation());
-                        player.sendMessage(ChatColor.GREEN + "You have been assigned a random team. Say hi to your teammate "+ ChatColor.GOLD + teammate.getName() + ChatColor.GREEN +"!");
-                    } else {
-                        player.teleport(new Location(player.getWorld(), 0, player.getWorld().getHighestBlockYAt(0, 0)+2, 0));
-                        player.sendMessage(ChatColor.GREEN + "You have been assigned a random team. Your new teammate is currently offline..");
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        GameState currentState = gameManager.getCurrentState();
 
-                    }
-                    soloTeamFound = true;
-                    break;
-                }
+        PlayerState state = (currentState == GameState.GRACE && teamManager.isPlayerInAnyTeam(player))
+                ? PlayerState.ALIVE
+                : PlayerState.LOBBY;
+
+        playerManager.setPlayerState(player, state);
+        tabManager.initializePlayer(player, state);
+        if (currentState != GameState.GRACE || !teamManager.isPlayerInAnyTeam(player)) {
+            Location lobbyLoc = gameManager.getLobbyLocation();
+            if (lobbyLoc != null && lobbyLoc.getWorld() != null) {
+                player.teleport(lobbyLoc);
             }
-            if (!soloTeamFound) {
-                teamManager.createSoloTeam(player);
-                player.teleport(new Location(player.getWorld(), 0, player.getWorld().getHighestBlockYAt(0, 0)+2, 0));
+            if (currentState == GameState.GRACE) {
+                player.sendMessage(ChatColor.GREEN + "Welcome! Use " + ChatColor.GOLD + "/br join" + ChatColor.GREEN + " to join the game and get assigned to a team.");
             }
         }
-        playerManager.setPlayerState(player, PlayerState.ALIVE);
-    } else {
-        playerManager.setPlayerState(player, PlayerState.DEAD);
-        player.teleport(gameManager.getLobbyLocation());
     }
-}
+
+    private ChatColor getStateColor(PlayerState state) {
+        return switch (state) {
+            case ALIVE -> ChatColor.GREEN;
+            case DEAD -> ChatColor.RED;
+            case LOBBY -> ChatColor.GRAY;
+            case GULAG -> ChatColor.YELLOW;
+            case RESURRECTED -> ChatColor.AQUA;
+        };
+    }
 }

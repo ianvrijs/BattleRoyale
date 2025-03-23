@@ -2,31 +2,17 @@ name: BattleRoyale
 version: '1.0-SNAPSHOT'
 main: org.Foxraft.battleRoyale.BattleRoyale
 api-version: '1.21'
+softdepend: [PlaceholderAPI]
 commands:
   br:
-    permission: br.use
-    description: Battle Royale command
-    usage: /<command>
+    description: Battle Royale commands
+    usage: /<command> [subcommand]
     aliases: [battleroyale]
-    subcommands:
-      team:
-        permission: br.team
-        description: Team commands
-        usage: /<command> team <subcommand>
-        subcommands:
-          invite:
-            permission: br.team
-            description: Invite a player to your team
-            usage: /<command> team invite <player>
-          accept:
-            permission: br.team
-            description: Invite a player to your team
-            usage: /<command> team invite <player>
-          leave:
-            permission: br.team
-            description: Leave your team
-            usage: /<command> team leave
-          list:
-            permission: br.team
-            description: List all teams
-            usage: /<command> team list <page>
+
+permissions:
+  br.admin:
+    description: Admin commands for Battle Royale
+    default: op
+  br.team:
+    description: Allows players to use team commands
+    default: true

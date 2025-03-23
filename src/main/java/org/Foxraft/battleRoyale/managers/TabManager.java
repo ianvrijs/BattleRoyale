@@ -1,6 +1,7 @@
 package org.Foxraft.battleRoyale.managers;
 
 import org.Foxraft.battleRoyale.events.PlayerStateChangeEvent;
+import org.Foxraft.battleRoyale.events.TeamLeaveEvent;
 import org.Foxraft.battleRoyale.models.Team;
 import org.Foxraft.battleRoyale.states.game.GameState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
@@ -10,27 +11,22 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.scoreboard.Scoreboard;
-
-import java.util.Objects;
 
 public class TabManager implements Listener {
-    private final Scoreboard scoreboard;
     private final TeamManager teamManager;
+    private final PlayerManager playerManager;
     private String header;
     private String footer;
 
-    public TabManager(TeamManager teamManager) {
+    public TabManager(TeamManager teamManager, PlayerManager playerManager) {
         this.teamManager = teamManager;
-        this.scoreboard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
+        this.playerManager = playerManager;
         setDefaultHeaderFooter();
     }
 
-    private void setDefaultHeaderFooter() {
-        this.header = ChatColor.GOLD + "=== Battle Royale ===" +
-        "\n" + ChatColor.GRAY + "%players% players";
-        this.footer = "\n" + ChatColor.GRAY + "Current State: %state%" +
-                "\n" + ChatColor.GOLD + "=== Foxcraft ===";
+    @EventHandler
+    public void onTeamLeave(TeamLeaveEvent event) {
+        updatePlayerTab(event.getPlayer(), playerManager.getPlayerState(event.getPlayer()));
     }
 
     @EventHandler
@@ -38,41 +34,42 @@ public class TabManager implements Listener {
         updatePlayerTab(event.getPlayer(), event.getNewState());
     }
 
-    public void updatePlayerTab(Player player, PlayerState state) {
-        Team gameTeam = teamManager.getTeam(player);
-        if (gameTeam == null) return;
+    public void initializePlayer(Player player, PlayerState state) {
+        updatePlayerTab(player, state);
+    }
 
-        String teamId = gameTeam.getId();
-        org.bukkit.scoreboard.Team scoreboardTeam = scoreboard.getTeam(teamId);
+    public void updatePlayerTab(Player player, PlayerState playerState) {
+        Team team = teamManager.getTeam(player);
+        String tabPrefix = team != null ? ChatColor.GOLD + team.getId() + " " + ChatColor.RESET : "";
+        String tabName = tabPrefix + formatPlayerState(playerState) + " " + player.getName();
+        player.setPlayerListName(tabName);
+    }
 
-        if (scoreboardTeam == null) {
-            scoreboardTeam = scoreboard.registerNewTeam(teamId);
-            scoreboardTeam.setPrefix(ChatColor.GRAY + "[" + teamId + "] ");
-        }
+    private String formatPlayerState(PlayerState state) {
+        return switch (state) {
+            case ALIVE -> ChatColor.GREEN + "●";
+            case DEAD -> ChatColor.RED + "●";
+            case LOBBY -> ChatColor.GRAY + "●";
+            case GULAG -> ChatColor.YELLOW + "●";
+            case RESURRECTED -> ChatColor.AQUA + "●";
+        };
+    }
 
-        switch (state) {
-            case ALIVE -> scoreboardTeam.setColor(ChatColor.GREEN);
-            case GULAG -> scoreboardTeam.setColor(ChatColor.RED);
-            case DEAD -> scoreboardTeam.setColor(ChatColor.DARK_GRAY);
-            default -> scoreboardTeam.setColor(ChatColor.GRAY);
-        }
-
-        scoreboardTeam.addEntry(player.getName());
-        player.setScoreboard(scoreboard);
+    private void setDefaultHeaderFooter() {
+        this.header = ChatColor.GOLD + "=== Battle Royale ===" +
+                "\n" + ChatColor.GRAY + "%players% players";
+        this.footer = "\n" + ChatColor.GRAY + "Current State: %state%" +
+                "\n" + ChatColor.GOLD + "=== Foxcraft ===";
     }
 
     public void updateHeaderFooter(GameState gameState) {
         String formattedHeader = header.replace("%players%",
                 String.valueOf(Bukkit.getOnlinePlayers().size()));
-
         String formattedFooter = footer.replace("%state%",
                 ChatColor.GREEN + gameState.toString());
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.setPlayerListHeaderFooter(
-                    formattedHeader,
-                    formattedFooter
-            );
+            player.setPlayerListHeaderFooter(formattedHeader, formattedFooter);
         }
     }
 
@@ -82,12 +79,5 @@ public class TabManager implements Listener {
 
     public void setFooter(String footer) {
         this.footer = footer;
-    }
-
-    public void removePlayer(Player player) {
-        org.bukkit.scoreboard.Team team = scoreboard.getEntryTeam(player.getName());
-        if (team != null) {
-            team.removeEntry(player.getName());
-        }
     }
 }

@@ -9,15 +9,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 public class StartUtils {
     private final JavaPlugin plugin;
     private final TeamManager teamManager;
     private List<Location> spawnLocations;
+    private String worldName;
 
     public StartUtils(JavaPlugin plugin, TeamManager teamManager) {
         this.plugin = plugin;
         this.teamManager = teamManager;
+        this.worldName = plugin.getConfig().getString("lobby.world", "world");
     }
 
     public void generateSpawnLocationsAndTeleportTeams() {
@@ -67,7 +70,7 @@ public class StartUtils {
 
                 Chunk chunk = world.getChunkAt(x >> 4, z >> 4);
                 if (!chunk.isLoaded()) {
-                    chunk.load(true);
+                    chunk.load();
                 }
 
                 int highestY = world.getHighestBlockYAt(x, z);

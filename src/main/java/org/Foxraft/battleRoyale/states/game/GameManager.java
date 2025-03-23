@@ -2,6 +2,7 @@ package org.Foxraft.battleRoyale.states.game;
 
 import org.Foxraft.battleRoyale.events.StormReachedFinalDestinationEvent;
 import org.Foxraft.battleRoyale.listeners.GracePeriodListener;
+import org.Foxraft.battleRoyale.listeners.ScoreboardListener;
 import org.Foxraft.battleRoyale.listeners.TeamDamageListener;
 import org.Foxraft.battleRoyale.managers.*;
 import org.Foxraft.battleRoyale.models.Team;
@@ -10,10 +11,7 @@ import org.Foxraft.battleRoyale.states.gulag.GulagState;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.Foxraft.battleRoyale.utils.StartUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameRule;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -43,6 +41,8 @@ public class GameManager implements Listener {
     private final TimerManager timerManager;
     private final TabManager tabManager;
     private int gracePeriodTaskId = -1;
+    private final String worldName;
+    private ScoreboardListener scoreboardListener;
 
     public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager, TabManager tabManager) {
         this.plugin = plugin;
@@ -54,12 +54,16 @@ public class GameManager implements Listener {
         this.gulagManager = gulagManager;
         this.timerManager = timerManager;
         this.tabManager = tabManager;
+        this.worldName = plugin.getConfig().getString("lobby.world", "world");
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
     @EventHandler
     public void onStormReachedFinalDestination(StormReachedFinalDestinationEvent event) {
         Bukkit.getLogger().info("StormReachedFinalDestinationEvent received");
         startDeathmatchState();
+    }
+    public void setScoreboardListener(ScoreboardListener listener) {
+        this.scoreboardListener = listener;
     }
     public void startGame(CommandSender sender) {
         if (currentState != GameState.LOBBY) {
@@ -102,16 +106,6 @@ public class GameManager implements Listener {
         startUtils.generateSpawnLocationsAndTeleportTeams();
         startUtils.broadcastCountdown(5);
 
-        // Set player states
-        for (Team team : teamManager.getTeams().values()) {
-            for (String playerName : team.getPlayers()) {
-                Player player = Bukkit.getPlayer(playerName);
-                if (player != null) {
-                    playerManager.setPlayerState(player, PlayerState.ALIVE);
-                }
-            }
-        }
-
         // Set grace
         int graceTimeMinutes = plugin.getConfig().getInt("graceTime", 5);
         final long graceTimeTicks = graceTimeMinutes * 60L * 20L;
@@ -120,6 +114,16 @@ public class GameManager implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             try {
                 startUtils.teleportTeamsToSpawnLocations();
+
+                for (Team team : teamManager.getTeams().values()) {
+                    for (String playerName : team.getPlayers()) {
+                        Player player = Bukkit.getPlayer(playerName);
+                        if (player != null) {
+                            playerManager.setPlayerState(player, PlayerState.ALIVE);
+                        }
+                    }
+                }
+
                 startGraceState(graceTimeTicks);
             } catch (Exception e) {
                 Bukkit.getLogger().severe("Error during teleportation: " + e.getMessage());
@@ -164,12 +168,12 @@ public class GameManager implements Listener {
 
         // Disable PvP and enable keep inventory
         pluginManager.registerEvents(gracePeriodListener, plugin);
-        Objects.requireNonNull(Bukkit.getWorld("world")).setGameRule(GameRule.KEEP_INVENTORY, true);
+        Objects.requireNonNull(Bukkit.getWorld(worldName)).setGameRule(GameRule.KEEP_INVENTORY, true);
 
         gracePeriodTaskId = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             // Logic once grace period ends
             HandlerList.unregisterAll(gracePeriodListener);
-            Objects.requireNonNull(Bukkit.getWorld("world")).setGameRule(GameRule.KEEP_INVENTORY, false);
+            Objects.requireNonNull(Bukkit.getWorld(worldName)).setGameRule(GameRule.KEEP_INVENTORY, false);
             startStormState();
         }, graceTimeTicks).getTaskId();
     }
@@ -194,22 +198,17 @@ public class GameManager implements Listener {
 
     private void setState(GameState newState) {
         this.currentState = newState;
-        Bukkit.getLogger().info("Game state changed to: " + newState);
-
-        // Start timer for new state
         timerManager.startTimer(getCurrentState());
 
         tabManager.updateHeaderFooter(newState);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            tabManager.updatePlayerTab(player, playerManager.getPlayerState(player));
-        }
+        scoreboardListener.updateOnGameStateChange(newState);
+
         String message = switch (newState) {
             case STARTING -> ChatColor.GREEN + "⚔ Prepare for battle! The game is starting...";
             case GRACE -> ChatColor.YELLOW + "☮ Grace period has begun! Gather resources and prepare your strategy.";
             case STORM -> ChatColor.RED + "⚡ The storm is approaching! PvP has been enabled!";
             case DEATHMATCH -> ChatColor.GOLD + "☠ Final showdown! May the best team win!";
             case LOBBY -> ChatColor.AQUA + "✦ Game ended - returning to lobby.";
-            default -> ChatColor.GREEN + "Game state: " + newState;
         };
 
         Bukkit.broadcastMessage(message);
@@ -314,5 +313,9 @@ public class GameManager implements Listener {
 
     public TeamManager getTeamManager() {
         return teamManager;
+    }
+
+    public JavaPlugin getPlugin() {
+        return plugin;
     }
 }
