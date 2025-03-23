@@ -12,15 +12,19 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.util.Timer;
+
 public class JoinManager {
     private final GameManager gameManager;
     private final TeamManager teamManager;
     private final PlayerManager playerManager;
+    private final TimerManager timerManager;
 
-    public JoinManager(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager) {
+    public JoinManager(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager, TimerManager timerManager) {
         this.gameManager = gameManager;
         this.teamManager = teamManager;
         this.playerManager = playerManager;
+        this.timerManager = timerManager;
     }
 
     public void handleJoin(Player player) {
@@ -58,6 +62,7 @@ public class JoinManager {
         }
 
         playerManager.setPlayerState(player, PlayerState.ALIVE);
+        timerManager.addPlayer(player);
     }
 
     private void teleportToDefaultLocation(Player player) {

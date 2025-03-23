@@ -6,8 +6,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.states.game.GameState;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
 /**
  * This class manages the state of players in the game.
  * Dependencies: PlayerState, Player, GameState, GulagManager
@@ -16,6 +16,7 @@ public class PlayerManager {
 
     private final Map<Player, PlayerState> playerStates = new HashMap<>();
     private final Map<Player, Boolean> playerGulagStatus = new HashMap<>();
+    private final Set<UUID> exemptedPlayers = new HashSet<>();
     private ScoreboardListener scoreboardListener;
 
     public void setScoreboardListener(ScoreboardListener listener) {
@@ -68,6 +69,17 @@ public class PlayerManager {
             setPlayerState(player, currentState);
         } else {
             setPlayerState(player, PlayerState.ALIVE);
+        }
+    }
+    public boolean isExempted(Player player) {
+        return exemptedPlayers.contains(player.getUniqueId());
+    }
+    public void toggleExemption(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (exemptedPlayers.contains(uuid)) {
+            exemptedPlayers.remove(uuid);
+        } else {
+            exemptedPlayers.add(uuid);
         }
     }
 }

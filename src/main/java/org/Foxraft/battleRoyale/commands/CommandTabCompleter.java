@@ -18,6 +18,7 @@ public class CommandTabCompleter implements TabCompleter {
                 commands.add("setup");
                 commands.add("start");
                 commands.add("stop");
+                commands.add("clearstats");
             }
             if (sender.hasPermission("br.use")) {
                 commands.add("team");

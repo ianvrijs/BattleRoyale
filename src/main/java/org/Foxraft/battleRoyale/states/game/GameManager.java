@@ -73,7 +73,7 @@ public class GameManager implements Listener {
 
         List<Player> playersWithoutTeam = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!teamManager.isPlayerInAnyTeam(player)) {
+            if (!teamManager.isPlayerInAnyTeam(player) && !playerManager.isExempted(player)) {
                 playersWithoutTeam.add(player);
             }
         }
