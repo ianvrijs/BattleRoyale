@@ -43,6 +43,7 @@ public class GameManager implements Listener {
     private int gracePeriodTaskId = -1;
     private final String worldName;
     private ScoreboardListener scoreboardListener;
+    private ScoreboardManager scoreboardManager;
 
     public GameManager(JavaPlugin plugin, PlayerManager playerManager, TeamManager teamManager, StartUtils startUtils, TeamDamageListener teamDamageListener, StormManager stormManager, GulagManager gulagManager, TimerManager timerManager, TabManager tabManager) {
         this.plugin = plugin;
@@ -65,6 +66,9 @@ public class GameManager implements Listener {
     public void setScoreboardListener(ScoreboardListener listener) {
         this.scoreboardListener = listener;
     }
+    public void setScoreboardManager(ScoreboardManager scoreboardManager) {
+        this.scoreboardManager = scoreboardManager;
+    }
     public void startGame(CommandSender sender) {
         if (currentState != GameState.LOBBY) {
             sender.sendMessage(ChatColor.RED + "Game has already been started.");
@@ -85,8 +89,12 @@ public class GameManager implements Listener {
                 teamManager.createTeam(player1, player2);
                 player1.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player2.getName());
                 player2.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player1.getName());
+                scoreboardManager.updatePlayerTeam(player1);
+                scoreboardManager.updatePlayerTeam(player2);
             } else {
-                teamManager.createSoloTeam(playersWithoutTeam.get(i));
+                Player soloPlayer = playersWithoutTeam.get(i);
+                teamManager.createSoloTeam(soloPlayer);
+                scoreboardManager.updatePlayerTeam(soloPlayer);
             }
         }
 
@@ -165,15 +173,10 @@ public class GameManager implements Listener {
     private void startGraceState(long graceTimeTicks) {
         setState(GameState.GRACE);
         PluginManager pluginManager = Bukkit.getPluginManager();
-
-        // Disable PvP and enable keep inventory
         pluginManager.registerEvents(gracePeriodListener, plugin);
-        Objects.requireNonNull(Bukkit.getWorld(worldName)).setGameRule(GameRule.KEEP_INVENTORY, true);
 
         gracePeriodTaskId = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // Logic once grace period ends
             HandlerList.unregisterAll(gracePeriodListener);
-            Objects.requireNonNull(Bukkit.getWorld(worldName)).setGameRule(GameRule.KEEP_INVENTORY, false);
             startStormState();
         }, graceTimeTicks).getTaskId();
     }
@@ -242,7 +245,7 @@ public class GameManager implements Listener {
                     Player player = Bukkit.getPlayer(playerName);
                     if (player != null) {
                         PlayerState state = playerManager.getPlayerState(player);
-                        if (state == PlayerState.ALIVE || state == PlayerState.GULAG) {
+                        if (state == PlayerState.ALIVE || state == PlayerState.GULAG || state == PlayerState.RESURRECTED) {
                             hasAliveOrGulagPlayer = true;
                             break;
                         }

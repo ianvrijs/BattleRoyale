@@ -36,13 +36,15 @@ public final class BattleRoyale extends JavaPlugin {
         gulagManager.setGameManager(gameManager);
         JoinManager joinManager = new JoinManager(gameManager, teamManager, playerManager, timerManager);
         ScoreboardManager scoreboardManager = new ScoreboardManager(statsManager, teamManager, gameManager, playerManager);
+        inviteManager.setScoreboardManager(scoreboardManager);
+        gameManager.setScoreboardManager(scoreboardManager);
         CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager, statsManager, joinManager);
         Objects.requireNonNull(getCommand("br")).setExecutor(commandHandler);
         Objects.requireNonNull(getCommand("br")).setTabCompleter(new CommandTabCompleter());
 
         getServer().getPluginManager().registerEvents(new PlayerKillListener(statsManager), this);
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(gulagManager, playerManager, gameManager, this, deathMessageManager), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(gameManager, teamManager, playerManager, tabManager, timerManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(gameManager, teamManager, playerManager, tabManager, timerManager, scoreboardManager), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(gulagManager, playerManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new DeathMessageListener(deathMessageManager), this);
 

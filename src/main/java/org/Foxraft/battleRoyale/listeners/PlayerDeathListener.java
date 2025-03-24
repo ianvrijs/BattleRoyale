@@ -67,12 +67,12 @@ public class PlayerDeathListener implements Listener {
                     }
                     case STORM -> {
                         if (playerState == PlayerState.ALIVE) {
-                            if (gulagManager.isGulagWorldReady()) {
+//                            if (gulagManager.isGulagWorldReady()) {
                                 gulagManager.enlistInGulag(player);
-                            } else {
-                                eliminatePlayer(player);
-                                player.sendMessage(ChatColor.RED + "Gulag is not accessible. You have been eliminated.");
-                            }
+//                            } else {
+//                                eliminatePlayer(player);
+//                                player.sendMessage(ChatColor.RED + "Gulag is not accessible. You have been eliminated.");
+//                            }
                         } else {
                             eliminatePlayer(player);
                         }
@@ -91,7 +91,9 @@ public class PlayerDeathListener implements Listener {
     }
 
     private void resetPlayerState(Player player) {
-        player.getInventory().clear();
+        if (gameManager.getCurrentState() != GameState.GRACE){
+            player.getInventory().clear();
+        }
         player.setHealth(20);
         player.setFoodLevel(20);
     }

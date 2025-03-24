@@ -99,7 +99,7 @@ public class TimerManager {
             case STORM:
                 return stormManager.calculateStormDuration();
             case DEATHMATCH:
-                return 5 * 60;
+                return 10 * 60;
             default:
                 return 0;
         }
