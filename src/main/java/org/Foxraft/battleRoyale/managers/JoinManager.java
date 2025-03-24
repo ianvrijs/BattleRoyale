@@ -49,6 +49,7 @@ public class JoinManager {
                     player.sendMessage(ChatColor.GREEN + "You joined team " + ChatColor.GOLD + team.getId() + ChatColor.GREEN + ". Your teammate is " + ChatColor.GOLD + teammate.getName());
                     teammate.sendMessage(ChatColor.GOLD + player.getName() + ChatColor.GREEN + " has joined your team!");
                 } else {
+                    player.sendMessage(ChatColor.GREEN + "You joined team " + ChatColor.GOLD + team.getId() + ChatColor.GREEN + ". Your teammate is offline.");
                     teleportToDefaultLocation(player);
                 }
                 soloTeamFound = true;

@@ -19,6 +19,7 @@ public class InviteManager {
     private final TeamManager teamManager;
     private final JavaPlugin plugin;
     private final TabManager tabManager;
+    private  ScoreboardManager scoreboardManager;
     private final Map<String, Invite> invitations = new HashMap<>();
     private static final long INVITE_EXPIRATION_TIME = 60000;
 
@@ -26,6 +27,9 @@ public class InviteManager {
         this.teamManager = teamManager;
         this.plugin = plugin;
         this.tabManager = tabManager;
+    }
+    public void setScoreboardManager(ScoreboardManager scoreboardManager) {
+        this.scoreboardManager = scoreboardManager;
     }
     public void invitePlayer(Player inviter, Player invitee) {
         if (inviter.equals(invitee)) {
@@ -39,6 +43,14 @@ public class InviteManager {
         if (invitations.containsKey(invitee.getName())) {
             inviter.sendMessage(ChatColor.RED + "Player " + invitee.getName() + " already has a pending invite.");
             return;
+        }
+        if (invitations.containsKey(inviter.getName())) {
+            Invite existingInvite = invitations.get(inviter.getName());
+            if (existingInvite.getInviter().equals(invitee.getName())) {
+                inviter.sendMessage(ChatColor.RED + "You already have a pending invite from " + invitee.getName() +
+                        ". Use " + ChatColor.GOLD + "/br team accept " + invitee.getName() + ChatColor.RED + " to accept it.");
+                return;
+            }
         }
         Team inviterTeam = teamManager.getTeams().values().stream()
                 .filter(team -> team.getPlayers().contains(inviter.getName()))
@@ -72,11 +84,19 @@ public class InviteManager {
         cleanUpExpiredInvites();
         Invite invite = invitations.get(invitee.getName());
         if (invite != null && invite.getInviter().equals(inviter.getName())) {
+            if (teamManager.isPlayerInAnyTeam(inviter) || teamManager.isPlayerInAnyTeam(invitee)) {
+                invitee.sendMessage(ChatColor.RED + "One of the players is already in a team.");
+                invitations.remove(invitee.getName());
+                return;
+            }
             teamManager.createTeam(inviter, invitee);
             invitations.remove(invitee.getName());
             invitee.sendMessage(ChatColor.GREEN + "You have joined " + inviter.getName() + "'s team.");
             inviter.sendMessage(ChatColor.GREEN + invitee.getName() + " has joined your team.");
             Bukkit.broadcastMessage(ChatColor.GOLD + inviter.getName() + ChatColor.GREEN + " and " + ChatColor.GOLD + invitee.getName() + ChatColor.GREEN + " have joined forces!");
+
+            scoreboardManager.updatePlayerTeam(inviter);
+            scoreboardManager.updatePlayerTeam(invitee);
             tabManager.updatePlayerTab(inviter, PlayerState.LOBBY);
             tabManager.updatePlayerTab(invitee, PlayerState.LOBBY);
         } else {

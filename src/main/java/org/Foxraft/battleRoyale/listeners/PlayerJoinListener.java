@@ -1,5 +1,6 @@
 package org.Foxraft.battleRoyale.listeners;
 
+import org.Foxraft.battleRoyale.managers.ScoreboardManager;
 import org.Foxraft.battleRoyale.managers.TabManager;
 import org.Foxraft.battleRoyale.managers.TeamManager;
 import org.Foxraft.battleRoyale.managers.TimerManager;
@@ -21,13 +22,15 @@ public class PlayerJoinListener implements Listener {
     private final GameManager gameManager;
     private final TabManager tabManager;
     private final TimerManager timerManager;
+    private final ScoreboardManager scoreboardManager;
 
-    public PlayerJoinListener(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager, TabManager tabManager, TimerManager timerManager) {
+    public PlayerJoinListener(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager, TabManager tabManager, TimerManager timerManager, ScoreboardManager scoreboardManager) {
         this.playerManager = playerManager;
         this.teamManager = teamManager;
         this.gameManager = gameManager;
         this.tabManager = tabManager;
         this.timerManager = timerManager;
+        this.scoreboardManager = scoreboardManager;
     }
 
     @EventHandler
@@ -41,11 +44,12 @@ public class PlayerJoinListener implements Listener {
 
         playerManager.setPlayerState(player, state);
         tabManager.initializePlayer(player, state);
+        scoreboardManager.updatePlayerTeam(player);
 
         if (currentState == GameState.GRACE) {
             if (teamManager.isPlayerInAnyTeam(player)) {
                 timerManager.addPlayer(player);
-                teleportToDefaultLocation(player);  // Add this line
+                teleportToDefaultLocation(player);
             } else {
                 player.sendMessage(ChatColor.GREEN + "Welcome! Use " + ChatColor.GOLD + "/br join" + ChatColor.GREEN + " to join the game and get assigned to a team.");
                 teleportToLobby(player);

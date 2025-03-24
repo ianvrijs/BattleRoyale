@@ -8,7 +8,6 @@ import org.Foxraft.battleRoyale.states.game.GameState;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,15 +18,14 @@ import org.Foxraft.battleRoyale.states.player.PlayerState;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Queue;
 
 public class GulagManager {
     private final PlayerManager playerManager;
-    private final Location gulagLocation1;
-    private final Location gulagLocation2;
-    private final Location lobbyLocation;
-    private final Location defaultRespawnLocation;
+    private Location gulagLocation1;
+    private Location gulagLocation2;
+    private Location lobbyLocation;
+    private Location defaultRespawnLocation;
     private final Queue<Player> gulagQueue = new LinkedList<>();
     private final TeamManager teamManager;
     private GameManager gameManager;
@@ -37,48 +35,107 @@ public class GulagManager {
     private PlayerMoveListener playerMoveListener;
     private boolean countdownActive = false;
 
-    private Location getDefaultRespawnLocation(String worldName) {
-        World world = Bukkit.getWorld(worldName);
-        if (world == null) {
-            plugin.getLogger().warning("World '" + worldName + "' not found. Using default world.");
-            world = Bukkit.getWorlds().get(0);
-        }
-        return new Location(world, 0, world.getHighestBlockYAt(0, 0) + 2, 0);
-    }
-
     public GulagManager(PlayerManager playerManager, JavaPlugin plugin, TeamManager teamManager) {
         this.playerManager = playerManager;
         this.plugin = plugin;
-        this.gulagLocation1 = getLocationFromConfig(plugin, "gulag1", null);
-        this.gulagLocation2 = getLocationFromConfig(plugin, "gulag2", null);
-        this.lobbyLocation = getLocationFromConfig(plugin, "lobby", null);
-        String worldName = plugin.getConfig().getString("lobby.world", "world");
-        this.defaultRespawnLocation = getDefaultRespawnLocation(worldName);
-        this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0);
         this.teamManager = teamManager;
+        this.eliminationYLevel = plugin.getConfig().getInt("gulagHeight", 0);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                loadLocations();
+            }
+        }.runTaskLater(plugin, 20L);
     }
     public void setGameManager(GameManager gameManager) {
         this.gameManager = gameManager;
     }
 
     private Location getLocationFromConfig(JavaPlugin plugin, String path, Location defaultLocation) {
-        if (!plugin.getConfig().contains(path)) {
+        if (!plugin.getConfig().contains(path + ".world") ||
+                !plugin.getConfig().contains(path + ".x") ||
+                !plugin.getConfig().contains(path + ".y") ||
+                !plugin.getConfig().contains(path + ".z")) {
+            plugin.getLogger().severe("Missing coordinates in config for path: " + path);
             return defaultLocation;
         }
-        String world = plugin.getConfig().getString(path + ".world", defaultLocation != null ? Objects.requireNonNull(defaultLocation.getWorld()).getName() : "world");
-        double x = plugin.getConfig().getDouble(path + ".x", defaultLocation != null ? defaultLocation.getX() : 0);
-        double y = plugin.getConfig().getDouble(path + ".y", defaultLocation != null ? defaultLocation.getY() : 64);
-        double z = plugin.getConfig().getDouble(path + ".z", defaultLocation != null ? defaultLocation.getZ() : 0);
-        float yaw = (float) plugin.getConfig().getDouble(path + ".yaw", defaultLocation != null ? defaultLocation.getYaw() : 0);
-        float pitch = (float) plugin.getConfig().getDouble(path + ".pitch", defaultLocation != null ? defaultLocation.getPitch() : 0);
-        return new Location(Bukkit.getWorld(world), x, y, z, yaw, pitch);
+
+        String worldName = plugin.getConfig().getString(path + ".world");
+        if (worldName == null) {
+            plugin.getLogger().severe("World name is missing in config for path: " + path);
+            return defaultLocation;
+        }
+
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            plugin.getLogger().severe("Could not find world: " + worldName);
+            return defaultLocation;
+        }
+
+        double x = plugin.getConfig().getDouble(path + ".x", 0);
+        double y = plugin.getConfig().getDouble(path + ".y", 64);
+        double z = plugin.getConfig().getDouble(path + ".z", 0);
+        float yaw = (float) plugin.getConfig().getDouble(path + ".yaw", 0);
+        float pitch = (float) plugin.getConfig().getDouble(path + ".pitch", 0);
+
+        return new Location(world, x, y, z, yaw, pitch);
+    }
+    private void loadLocations() {
+        Location loc1 = getLocationFromConfig(plugin, "gulag1", null);
+        Location loc2 = getLocationFromConfig(plugin, "gulag2", null);
+        Location lobby = getLocationFromConfig(plugin, "lobby", null);
+
+        if (loc1 != null && loc2 != null && lobby != null) {
+            this.gulagLocation1 = loc1;
+            this.gulagLocation2 = loc2;
+            this.lobbyLocation = lobby;
+
+            World world = lobby.getWorld();
+            assert world != null;
+            this.defaultRespawnLocation = new Location(world, 0,
+                    world.getHighestBlockYAt(0, 0) + 2, 0);
+
+            plugin.getLogger().info("Successfully loaded locations: " +
+                    "Lobby(" + lobby.getX() + "," + lobby.getY() + "," + lobby.getZ() + ") " +
+                    "Gulag1(" + loc1.getX() + "," + loc1.getY() + "," + loc1.getZ() + ") " +
+                    "Gulag2(" + loc2.getX() + "," + loc2.getY() + "," + loc2.getZ() + ")");
+        } else {
+            plugin.getLogger().severe("Failed to load one or more locations. Make sure world is loaded.");
+            // Try again in 1 second
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    loadLocations();
+                }
+            }.runTaskLater(plugin, 20L);
+        }
     }
 
     public void enlistInGulag(Player player) {
-        // Don't enlist if player is already in gulag
+        if (gulagLocation1 == null || gulagLocation2 == null) {
+            plugin.getLogger().severe("Gulag locations are not set in config.yml");
+            return;
+        }
+        plugin.getLogger().info("World name: " + gulagLocation1.getWorld().getName());
+        World world = gulagLocation1.getWorld();
+        if (world == null || !world.isChunkLoaded(world.getChunkAt(gulagLocation1))) {
+            plugin.getLogger().severe("Gulag world is not loaded or chunk is not loaded");
+            return;
+        }
         if (playerManager.getPlayerState(player) == PlayerState.GULAG) {
             return;
         }
+        if (gulagLocation1 == null || gulagLocation2 == null) {
+            plugin.getLogger().severe("Gulag locations are not set in config.yml");
+            return;
+        }
+
+        if (world == null) {
+            plugin.getLogger().severe("Gulag world is not loaded");
+            return;
+        }
+        gulagLocation1.setWorld(world);
+        gulagLocation2.setWorld(world);
 
         // Don't enlist if player was already resurrected
         if (playerManager.getPlayerState(player) == PlayerState.RESURRECTED) {
@@ -100,8 +157,7 @@ public class GulagManager {
         for (Team team : teamManager.getTeams().values()) {
             for (String playerName : team.getPlayers()) {
                 Player p = Bukkit.getPlayer(playerName);
-                if (p != null && (playerManager.getPlayerState(p) == PlayerState.ALIVE
-                        || playerManager.getPlayerState(p) == PlayerState.GULAG)) {
+                if (p != null && (playerManager.getPlayerState(p) == PlayerState.ALIVE || playerManager.getPlayerState(p) == PlayerState.GULAG)) {
                     alivePlayers++;
                 }
             }

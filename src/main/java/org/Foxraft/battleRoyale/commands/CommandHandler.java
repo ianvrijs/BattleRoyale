@@ -190,7 +190,7 @@ public class CommandHandler implements CommandExecutor {
 
     private void handleTeamCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept|list|leave> [args]");
+            sender.sendMessage(ChatColor.RED + "Usage: /br team <invite|accept|list> [args]");
             return;
         }
 
@@ -262,20 +262,20 @@ public class CommandHandler implements CommandExecutor {
                     sender.sendMessage(ChatColor.RED + "Usage: /br team remove {player}");
                 }
                 break;
-            case "leave":
-                if (sender instanceof Player player) {
-                    if (teamManager.isPlayerInAnyTeam(player)) {
-
-                        teamManager.removePlayerFromTeam(player);
-                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
-                        sender.sendMessage(ChatColor.GREEN + "You have left your team.");
-                    } else {
-                        sender.sendMessage(ChatColor.RED + "You are not in any team.");
-                    }
-                } else {
-                    sender.sendMessage(ChatColor.RED + "This command can only be run by a player.");
-                }
-                break;
+//            case "leave":
+//                if (sender instanceof Player player) {
+//                    if (teamManager.isPlayerInAnyTeam(player)) {
+//
+//                        teamManager.removePlayerFromTeam(player);
+//                        Bukkit.getPluginManager().callEvent(new TeamLeaveEvent(player));
+//                        sender.sendMessage(ChatColor.GREEN + "You have left your team.");
+//                    } else {
+//                        sender.sendMessage(ChatColor.RED + "You are not in any team.");
+//                    }
+//                } else {
+//                    sender.sendMessage(ChatColor.RED + "This command can only be run by a player.");
+//                }
+//                break;
             case "invite":
                 if (args.length == 3 && sender instanceof Player inviter) {
                     Player invitee = plugin.getServer().getPlayer(args[2]);
