@@ -7,6 +7,7 @@ import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.DumperOptions;
@@ -226,5 +227,11 @@ public class TeamManager {
             }
         }
         return null;
+    }
+
+
+    public void clearTeams() {
+        teams.clear();
+        saveTeams();
     }
 }

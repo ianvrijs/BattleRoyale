@@ -38,7 +38,7 @@ public final class BattleRoyale extends JavaPlugin {
         ScoreboardManager scoreboardManager = new ScoreboardManager(statsManager, teamManager, gameManager, playerManager);
         inviteManager.setScoreboardManager(scoreboardManager);
         gameManager.setScoreboardManager(scoreboardManager);
-        CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager, statsManager, joinManager);
+        CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager, statsManager, joinManager, scoreboardManager);
         Objects.requireNonNull(getCommand("br")).setExecutor(commandHandler);
         Objects.requireNonNull(getCommand("br")).setTabCompleter(new CommandTabCompleter());
 

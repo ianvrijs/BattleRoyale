@@ -1,6 +1,7 @@
 package org.Foxraft.battleRoyale.managers;
 
 import org.Foxraft.battleRoyale.BattleRoyale;
+import org.Foxraft.battleRoyale.events.DeathmatchTimerEndEvent;
 import org.Foxraft.battleRoyale.states.game.GameState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -18,6 +19,7 @@ public class TimerManager {
     private BukkitTask timerTask;
     private int remainingSeconds;
     private GameState currentState;
+    private boolean eventFired = false;
 
     public TimerManager(BattleRoyale plugin, StormManager stormManager) {
         this.plugin = plugin;
@@ -47,7 +49,7 @@ public class TimerManager {
                 timerBar.setColor(BarColor.RED);
                 break;
             case DEATHMATCH:
-                remainingSeconds = 5 * 60; // 5 minutes
+                remainingSeconds = 10 * 60; // 10 minutes
                 timerBar.setColor(BarColor.PURPLE);
                 break;
             default:
@@ -113,6 +115,10 @@ public class TimerManager {
         if (timerBar != null) {
             timerBar.setProgress(0.0);
             timerBar.removeAll();
+        }
+        if (currentState == GameState.DEATHMATCH && remainingSeconds <= 0 && !eventFired) {
+            eventFired = true;
+            Bukkit.getPluginManager().callEvent(new DeathmatchTimerEndEvent());
         }
         remainingSeconds = 0;
     }
