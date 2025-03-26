@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.BattleRoyale;
 import org.Foxraft.battleRoyale.states.game.GameState;
+import org.bukkit.scoreboard.Scoreboard;
 
 
 public class CommandHandler implements CommandExecutor {
@@ -24,9 +25,10 @@ public class CommandHandler implements CommandExecutor {
     private final StatsManager statsManager;
     private final CooldownManager cooldownManager = new CooldownManager();
     private final JoinManager joinManager;
+    private final ScoreboardManager scoreboardManager;
 
 
-    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager, StatsManager statsManager, JoinManager joinManager)  {
+    public CommandHandler(BattleRoyale plugin, TeamManager teamManager, SetupManager setupManager, InviteManager inviteManager, GameManager gameManager, PlayerManager playerManager, StatsManager statsManager, JoinManager joinManager, ScoreboardManager scoreboardManager) {
         this.plugin = plugin;
         this.teamManager = teamManager;
         this.setupManager = setupManager;
@@ -35,6 +37,7 @@ public class CommandHandler implements CommandExecutor {
         this.playerManager = playerManager;
         this.statsManager = statsManager;
         this.joinManager = joinManager;
+        this.scoreboardManager = scoreboardManager;
     }
 
     @Override
@@ -117,6 +120,30 @@ public class CommandHandler implements CommandExecutor {
                     sender.sendMessage(ChatColor.RED + "This command can only be run by a player.");
                 }
                 break;
+            case "clearteams":
+                if (!sender.hasPermission("br.admin")) {
+                    sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                    return true;
+                }
+                if (gameManager.getCurrentState() != GameState.LOBBY) {
+                    sender.sendMessage(ChatColor.RED + "Teams can only be cleared in lobby state.");
+                    return true;
+                }
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    Scoreboard scoreboard = player.getScoreboard();
+                    if (scoreboard != null) {
+                        for (org.bukkit.scoreboard.Team team : scoreboard.getTeams()) {
+                            team.unregister();
+                        }
+                    }
+                }
+                teamManager.clearTeams();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    scoreboardManager.setupPlayerScoreboard(player);
+                }
+
+                sender.sendMessage(ChatColor.GREEN + "All teams have been cleared.");
+                return true;
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + subCommand);
                 break;

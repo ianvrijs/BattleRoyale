@@ -1,5 +1,6 @@
 package org.Foxraft.battleRoyale.states.game;
 
+import org.Foxraft.battleRoyale.events.DeathmatchTimerEndEvent;
 import org.Foxraft.battleRoyale.events.StormReachedFinalDestinationEvent;
 import org.Foxraft.battleRoyale.listeners.GracePeriodListener;
 import org.Foxraft.battleRoyale.listeners.ScoreboardListener;
@@ -21,9 +22,8 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Scoreboard;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+
 /**
  * This class manages the game state and transitions between game states.
  * It depends on the PlayerManager, TeamManager, StormManager and StartUtils classes.
@@ -63,6 +63,35 @@ public class GameManager implements Listener {
         Bukkit.getLogger().info("StormReachedFinalDestinationEvent received");
         startDeathmatchState();
     }
+    @EventHandler
+    public void onDeathmatchTimerEnd(DeathmatchTimerEndEvent event) {
+        if (currentState == GameState.DEATHMATCH) {
+            //count which team has most alive players
+            Map<Team, Integer> alivePlayerCounts = new HashMap<>();
+
+            for (Team team : teamManager.getTeams().values()) {
+                int aliveCount = (int) team.getPlayers().stream()
+                        .map(Bukkit::getPlayer)
+                        .filter(Objects::nonNull)
+                        .filter(player -> playerManager.getPlayerState(player) == PlayerState.ALIVE)
+                        .count();
+
+                if (aliveCount > 0) {
+                    alivePlayerCounts.put(team, aliveCount);
+                }
+            }
+
+            if (!alivePlayerCounts.isEmpty()) {
+                alivePlayerCounts.entrySet().stream()
+                        .max(Map.Entry.comparingByValue())
+                        .map(Map.Entry::getKey).ifPresent(this::endGame);
+            } else {
+                //edge case; no players
+                Bukkit.broadcastMessage(ChatColor.RED + "Game ended - No winners!");
+                stopGame();
+            }
+        }
+    }
     public void setScoreboardListener(ScoreboardListener listener) {
         this.scoreboardListener = listener;
     }
@@ -75,33 +104,10 @@ public class GameManager implements Listener {
             return;
         }
 
-        List<Player> playersWithoutTeam = new ArrayList<>();
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!teamManager.isPlayerInAnyTeam(player) && !playerManager.isExempted(player)) {
-                playersWithoutTeam.add(player);
-            }
-        }
-
-        for (int i = 0; i < playersWithoutTeam.size(); i += 2) {
-            if (i + 1 < playersWithoutTeam.size()) {
-                Player player1 = playersWithoutTeam.get(i);
-                Player player2 = playersWithoutTeam.get(i + 1);
-                teamManager.createTeam(player1, player2);
-                player1.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player2.getName());
-                player2.sendMessage(ChatColor.GREEN + "You have been put into a new team with " + player1.getName());
-                scoreboardManager.updatePlayerTeam(player1);
-                scoreboardManager.updatePlayerTeam(player2);
-            } else {
-                Player soloPlayer = playersWithoutTeam.get(i);
-                teamManager.createSoloTeam(soloPlayer);
-                scoreboardManager.updatePlayerTeam(soloPlayer);
-            }
-        }
-
-        // Count active teams
         int activeTeams = (int) teamManager.getTeams().values().stream()
                 .filter(team -> team.getPlayers().stream()
-                        .map(Bukkit::getPlayer).anyMatch(Objects::nonNull))
+                        .map(Bukkit::getPlayer)
+                        .anyMatch(Objects::nonNull))
                 .count();
 
         if (activeTeams < 2) {
@@ -109,32 +115,24 @@ public class GameManager implements Listener {
             return;
         }
 
+        autoAssignTeams();
+
         setState(GameState.STARTING);
-        sender.sendMessage(ChatColor.GREEN + "Generating spawn locations... this might take a minute.");
-        startUtils.generateSpawnLocationsAndTeleportTeams();
+        sender.sendMessage(ChatColor.GREEN + "Preparing game start...");
+
+        startUtils.prepareSpawnPoints();
         startUtils.broadcastCountdown(5);
 
-        // Set grace
         int graceTimeMinutes = plugin.getConfig().getInt("graceTime", 5);
         final long graceTimeTicks = graceTimeMinutes * 60L * 20L;
 
-        // TP after countdown
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             try {
-                startUtils.teleportTeamsToSpawnLocations();
-
-                for (Team team : teamManager.getTeams().values()) {
-                    for (String playerName : team.getPlayers()) {
-                        Player player = Bukkit.getPlayer(playerName);
-                        if (player != null) {
-                            playerManager.setPlayerState(player, PlayerState.ALIVE);
-                        }
-                    }
-                }
-
+                startUtils.teleportTeams();
+                setPlayersAlive();
                 startGraceState(graceTimeTicks);
             } catch (Exception e) {
-                Bukkit.getLogger().severe("Error during teleportation: " + e.getMessage());
+                Bukkit.getLogger().severe("Error during game start: " + e.getMessage());
                 stopGame();
             }
         }, 5 * 20);
@@ -192,11 +190,9 @@ public class GameManager implements Listener {
         pluginManager.registerEvents(teamDamageListener, plugin);
     }
 
-    //TODO implement deathmatch utils
     private void startDeathmatchState() {
         setState(GameState.DEATHMATCH);
         gulagManager.clearGulag();
-        // TODO: Implement border color flicker logic
     }
 
     private void setState(GameState newState) {
@@ -320,5 +316,40 @@ public class GameManager implements Listener {
 
     public JavaPlugin getPlugin() {
         return plugin;
+    }
+
+    private void autoAssignTeams() {
+        List<Player> playersWithoutTeam = Bukkit.getOnlinePlayers().stream()
+                .filter(player -> !teamManager.isPlayerInAnyTeam(player) && !playerManager.isExempted(player))
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+
+        for (int i = 0; i < playersWithoutTeam.size(); i += 2) {
+            if (i + 1 < playersWithoutTeam.size()) {
+                Player player1 = playersWithoutTeam.get(i);
+                Player player2 = playersWithoutTeam.get(i + 1);
+                teamManager.createTeam(player1, player2);
+                notifyTeamAssignment(player1, player2);
+            } else {
+                Player soloPlayer = playersWithoutTeam.get(i);
+                teamManager.createSoloTeam(soloPlayer);
+                scoreboardManager.updatePlayerTeam(soloPlayer);
+            }
+        }
+    }
+
+    private void notifyTeamAssignment(Player player1, Player player2) {
+        String message = ChatColor.GREEN + "You have been put into a new team with %s";
+        player1.sendMessage(String.format(message, player2.getName()));
+        player2.sendMessage(String.format(message, player1.getName()));
+        scoreboardManager.updatePlayerTeam(player1);
+        scoreboardManager.updatePlayerTeam(player2);
+    }
+
+    private void setPlayersAlive() {
+        teamManager.getTeams().values().stream()
+                .flatMap(team -> team.getPlayers().stream())
+                .map(Bukkit::getPlayer)
+                .filter(Objects::nonNull)
+                .forEach(player -> playerManager.setPlayerState(player, PlayerState.ALIVE));
     }
 }
