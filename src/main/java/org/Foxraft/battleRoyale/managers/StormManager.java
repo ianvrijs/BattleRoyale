@@ -29,6 +29,10 @@ public class StormManager {
         double finalRadius = 50;
         double shrinkDuration = (mapRadius - finalRadius) / stormSpeed; // duration in seconds
 
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1.0f, 1.0f);
+        }
+
         WorldBorder worldBorder = Objects.requireNonNull(Bukkit.getWorld(worldName)).getWorldBorder();
         worldBorder.setCenter(0, 0);
         worldBorder.setSize(mapRadius * 2); // radius *2 = diameter

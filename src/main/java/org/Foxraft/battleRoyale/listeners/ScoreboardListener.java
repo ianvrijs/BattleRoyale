@@ -1,8 +1,8 @@
 package org.Foxraft.battleRoyale.listeners;
 
+import org.Foxraft.battleRoyale.events.PlayerStateChangeEvent;
 import org.Foxraft.battleRoyale.managers.ScoreboardManager;
 import org.Foxraft.battleRoyale.states.game.GameState;
-import org.Foxraft.battleRoyale.states.player.PlayerState;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -44,10 +44,25 @@ public class ScoreboardListener implements Listener {
         }
     }
 
-    public void updateOnGameStateChange(GameState newState) {
-        Bukkit.getOnlinePlayers().forEach(scoreboardManager::updateScoreboard);
+    @EventHandler
+    public void onPlayerStateChange(PlayerStateChangeEvent event) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player updatedPlayer = event.getPlayer();
+            scoreboardManager.updateScoreboard(updatedPlayer);
+
+            org.Foxraft.battleRoyale.models.Team team = scoreboardManager.getTeamManager().getTeam(updatedPlayer);
+            if (team != null) {
+                team.getPlayers().stream()
+                        .map(Bukkit::getPlayer)
+                        .filter(Objects::nonNull)
+                        .forEach(scoreboardManager::updateScoreboard);
+            }
+        });
     }
-    public void updateOnPlayerStateChange(PlayerState newState, Player player) {
-        scoreboardManager.updateScoreboard(player);
+
+    public void updateOnGameStateChange(GameState newState) {
+        Bukkit.getScheduler().runTask(plugin, () ->
+                Bukkit.getOnlinePlayers().forEach(scoreboardManager::updateScoreboard)
+        );
     }
 }

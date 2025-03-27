@@ -19,12 +19,14 @@ public class JoinManager {
     private final TeamManager teamManager;
     private final PlayerManager playerManager;
     private final TimerManager timerManager;
+    private final ScoreboardManager scoreboardManager;
 
-    public JoinManager(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager, TimerManager timerManager) {
+    public JoinManager(GameManager gameManager, TeamManager teamManager, PlayerManager playerManager, TimerManager timerManager, ScoreboardManager scoreboardManager) {
         this.gameManager = gameManager;
         this.teamManager = teamManager;
         this.playerManager = playerManager;
         this.timerManager = timerManager;
+        this.scoreboardManager = scoreboardManager;
     }
 
     public void handleJoin(Player player) {
@@ -43,6 +45,8 @@ public class JoinManager {
         for (Team team : teamManager.getTeams().values()) {
             if (team.getPlayers().size() == 1) {
                 teamManager.addPlayerToTeam(player, team.getId());
+                scoreboardManager.setupPlayerScoreboard(player);
+                scoreboardManager.updatePlayerTeam(player);
                 Player teammate = Bukkit.getPlayer(team.getPlayers().get(0));
                 if (teammate != null && teammate.isOnline()) {
                     player.teleport(teammate.getLocation());
@@ -59,6 +63,8 @@ public class JoinManager {
 
         if (!soloTeamFound) {
             teamManager.createSoloTeam(player);
+            scoreboardManager.setupPlayerScoreboard(player);
+            scoreboardManager.updatePlayerTeam(player);
             teleportToDefaultLocation(player);
         }
 

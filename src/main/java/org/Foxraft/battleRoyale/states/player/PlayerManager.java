@@ -1,7 +1,6 @@
 package org.Foxraft.battleRoyale.states.player;
 
 import org.Foxraft.battleRoyale.events.PlayerStateChangeEvent;
-import org.Foxraft.battleRoyale.listeners.ScoreboardListener;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.Foxraft.battleRoyale.states.game.GameState;
@@ -17,17 +16,11 @@ public class PlayerManager {
     private final Map<Player, PlayerState> playerStates = new HashMap<>();
     private final Map<Player, Boolean> playerGulagStatus = new HashMap<>();
     private final Set<UUID> exemptedPlayers = new HashSet<>();
-    private ScoreboardListener scoreboardListener;
 
-    public void setScoreboardListener(ScoreboardListener listener) {
-        this.scoreboardListener = listener;
-    }
     public void setPlayerState(Player player, PlayerState state) {
         playerStates.put(player, state);
+        Bukkit.getLogger().info("Setting player state for " + player.getName() + " to " + state);
         Bukkit.getPluginManager().callEvent(new PlayerStateChangeEvent(player, state));
-        if (scoreboardListener != null) {
-            scoreboardListener.updateOnPlayerStateChange(state, player);
-        }
         Bukkit.getLogger().info("Player " + player.getName() + " is now in state " + state);
     }
     public PlayerState getPlayerState(Player player) {
