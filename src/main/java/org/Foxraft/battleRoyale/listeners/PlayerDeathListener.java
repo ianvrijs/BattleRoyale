@@ -67,12 +67,10 @@ public class PlayerDeathListener implements Listener {
                     }
                     case STORM -> {
                         if (playerState == PlayerState.ALIVE) {
-//                            if (gulagManager.isGulagWorldReady()) {
-                                gulagManager.enlistInGulag(player);
-//                            } else {
-//                                eliminatePlayer(player);
-//                                player.sendMessage(ChatColor.RED + "Gulag is not accessible. You have been eliminated.");
-//                            }
+                            gulagManager.enlistInGulag(player);
+                        } else if (playerState == PlayerState.RESURRECTED) {
+                            eliminatePlayer(player);
+                            player.sendMessage(ChatColor.RED + "You've been eliminated!");
                         } else {
                             eliminatePlayer(player);
                         }
@@ -84,7 +82,7 @@ public class PlayerDeathListener implements Listener {
                 if (team != null && !gameState.equals(GameState.LOBBY) && gameManager.getTeamManager().isTeamEliminated(team.getId())) {
                     Bukkit.broadcastMessage(deathMessageManager.getTeamEliminatedMessage(team.getName()));
                 }
-                playerManager.updatePlayerState(player, gameState);
+//                playerManager.updatePlayerState(player, gameState);
                 gameManager.checkForWinningTeam();
             }, 1L);
         }, 1L);

@@ -34,8 +34,8 @@ public final class BattleRoyale extends JavaPlugin {
         TimerManager timerManager = new TimerManager(this, stormManager);
         GameManager gameManager = new GameManager(this, playerManager, teamManager, startUtils, teamDamageListener, stormManager, gulagManager, timerManager, tabManager);
         gulagManager.setGameManager(gameManager);
-        JoinManager joinManager = new JoinManager(gameManager, teamManager, playerManager, timerManager);
         ScoreboardManager scoreboardManager = new ScoreboardManager(statsManager, teamManager, gameManager, playerManager);
+        JoinManager joinManager = new JoinManager(gameManager, teamManager, playerManager, timerManager, scoreboardManager);
         inviteManager.setScoreboardManager(scoreboardManager);
         gameManager.setScoreboardManager(scoreboardManager);
         CommandHandler commandHandler = new CommandHandler(this, teamManager, setupManager, inviteManager, gameManager, playerManager, statsManager, joinManager, scoreboardManager);
@@ -51,7 +51,7 @@ public final class BattleRoyale extends JavaPlugin {
         ScoreboardListener scoreboardListener = new ScoreboardListener(scoreboardManager, this);
         getServer().getPluginManager().registerEvents(scoreboardListener, this);
         gameManager.setScoreboardListener(scoreboardListener);
-        playerManager.setScoreboardListener(scoreboardListener);
+//        playerManager.setScoreboardListener(scoreboardListener);
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
             try {

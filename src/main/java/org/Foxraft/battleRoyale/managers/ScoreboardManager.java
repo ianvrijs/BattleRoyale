@@ -132,4 +132,8 @@ public class ScoreboardManager {
             case RESURRECTED -> "Resurrected";
         };
     }
+
+    public TeamManager getTeamManager() {
+        return teamManager;
+    }
 }

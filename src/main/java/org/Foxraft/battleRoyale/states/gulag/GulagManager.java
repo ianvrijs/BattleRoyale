@@ -9,6 +9,7 @@ import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -16,6 +17,7 @@ import org.Foxraft.battleRoyale.listeners.PlayerMoveListener;
 import org.Foxraft.battleRoyale.states.player.PlayerManager;
 import org.Foxraft.battleRoyale.states.player.PlayerState;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -182,7 +184,6 @@ public class GulagManager {
             }
         } else {
             // Players in position 3+ are waiting
-            playerManager.setPlayerState(player, PlayerState.DEAD);
             player.teleport(lobbyLocation);
             player.sendMessage(ChatColor.RED + "Sumo is full. Please wait for the next match.");
         }
@@ -252,37 +253,46 @@ public class GulagManager {
         }.runTaskLater(plugin, 100L); // 5s
     }
 
-    public void handleGulagLoss(Player loser) {
-        if (loser == null) {
-            return;
-        }
-        playerManager.setPlayerState(loser, PlayerState.DEAD);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                loser.sendMessage(ChatColor.RED + "You've been eliminated..");
-                loser.teleport(lobbyLocation);
-                loser.getInventory().clear();
-                loser.setHealth(20);
-                loser.setFoodLevel(20);
-                gulagState = GulagState.IDLE;
-                checkAndStartNewGulagMatch();
-            }
-        }.runTaskLater(plugin, 1L); //1s
-    }
-
     public void unregisterPlayerMoveListener() {
         if (playerMoveListener != null) {
             HandlerList.unregisterAll(playerMoveListener);
             playerMoveListener = null;
         }
     }
-
     private void giveGoldenArmorKit(Player player) {
         ItemStack helmet = new ItemStack(Material.GOLDEN_HELMET);
         ItemStack chestplate = new ItemStack(Material.GOLDEN_CHESTPLATE);
         ItemStack leggings = new ItemStack(Material.GOLDEN_LEGGINGS);
         ItemStack boots = new ItemStack(Material.GOLDEN_BOOTS);
+
+        ItemMeta helmetMeta = helmet.getItemMeta();
+        ItemMeta chestplateMeta = chestplate.getItemMeta();
+        ItemMeta leggingsMeta = leggings.getItemMeta();
+        ItemMeta bootsMeta = boots.getItemMeta();
+
+        assert helmetMeta != null;
+        helmetMeta.setDisplayName(ChatColor.GOLD + "Crown of Redemption");
+        assert chestplateMeta != null;
+        chestplateMeta.setDisplayName(ChatColor.GOLD + "Chestplate of Redemption");
+        assert leggingsMeta != null;
+        leggingsMeta.setDisplayName(ChatColor.GOLD + "Leggings of Redemption");
+        assert bootsMeta != null;
+        bootsMeta.setDisplayName(ChatColor.GOLD + "Boots of Redemption");
+
+        List<String> lore = Arrays.asList(
+                ChatColor.GRAY + "Forged in the Ring of Redemption by " + player.getName(),
+                ChatColor.GRAY + "Worn by those who fought for their second chance"
+        );
+
+        helmetMeta.setLore(lore);
+        chestplateMeta.setLore(lore);
+        leggingsMeta.setLore(lore);
+        bootsMeta.setLore(lore);
+
+        helmet.setItemMeta(helmetMeta);
+        chestplate.setItemMeta(chestplateMeta);
+        leggings.setItemMeta(leggingsMeta);
+        boots.setItemMeta(bootsMeta);
 
         player.getInventory().setHelmet(helmet);
         player.getInventory().setChestplate(chestplate);
@@ -336,6 +346,7 @@ public class GulagManager {
         }
         //check for game end
 
+
         gulagQueue.clear();
         gulagState = GulagState.IDLE;
         countdownActive = false;
@@ -367,6 +378,7 @@ public class GulagManager {
                 if (finalWinner.isOnline()) {
                     finalWinner.teleport(defaultRespawnLocation);
                     giveGoldenArmorKit(finalWinner);
+                    giveNoobieProtection(finalWinner);
                 }
                 gulagState = GulagState.IDLE;
                 checkAndStartNewGulagMatch();
@@ -377,9 +389,16 @@ public class GulagManager {
     public List<Player> getGulagQueue() {
         return new LinkedList<>(gulagQueue);
     }
-
-    public boolean isGulagWorldReady() {
-        return gulagLocation1 != null && gulagLocation1.getWorld() != null &&
-                gulagLocation2 != null && gulagLocation2.getWorld() != null;
+    private void giveNoobieProtection(Player player) {
+        player.setInvulnerable(true);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (player.isOnline()) {
+                    player.setInvulnerable(false);
+                    player.sendMessage(ChatColor.RED + "Your noobie protection has worn off!");
+                }
+            }
+        }.runTaskLater(plugin, 100L); // 5s
     }
 }
